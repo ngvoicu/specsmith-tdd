@@ -1,0 +1,19 @@
+{
+  "name": "specsmith-tdd",
+  "version": "1.0.0",
+  "description": "TDD-first spec management for AI coding workflows. Every task starts with a failing test, no production code without red tests. Specs enforce test-per-phase structure, testcontainers for real services, and strict red-green-refactor cycles.",
+  "author": {
+    "name": "Gabriel Voicu"
+  },
+  "license": "MIT",
+  "keywords": [
+    "tdd",
+    "testing",
+    "specs",
+    "test-driven",
+    "testcontainers",
+    "red-green-refactor",
+    "workflow",
+    "phases"
+  ]
+}
