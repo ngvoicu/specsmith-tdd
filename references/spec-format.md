@@ -94,7 +94,8 @@ stateDiagram-v2
 | HTTP mocking | <MSW/WireMock/VCR/etc.> | <ver> | External API isolation |
 | Coverage tool | <v8/istanbul/coverage.py/JaCoCo/etc.> | <ver> | Code coverage reporting |
 | Mutation testing | <Stryker/Pitest/mutmut/etc.> | <ver> | Test quality verification |
-| E2E framework | <Playwright/Cypress/etc.> | <ver> | End-to-end user flows |
+| E2E (backend) | <Supertest/httpx/MockMvc/httptest/etc.> | <ver> | Full API request lifecycle tests |
+| E2E (frontend) | <Playwright/Cypress/etc.> | <ver> | Browser-based user flow tests |
 
 ### Isolation Strategy
 
@@ -105,7 +106,8 @@ stateDiagram-v2
 | Repository / Data access | Testcontainers | <PostgreSQL/Redis/etc.> |
 | HTTP clients | MSW / WireMock | <list external APIs> |
 | API handlers | Supertest / httptest | Full handler stack |
-| E2E | Full stack | All services running |
+| E2E (backend) | Testcontainers + mocked externals | Full request lifecycle: HTTP → middleware → handler → service → DB → response |
+| E2E (frontend) | Playwright / Cypress | Browser-based user flows |
 
 ### Coverage Targets
 
@@ -123,7 +125,8 @@ stateDiagram-v2
 | `<npm run test:integration>` | Run integration tests |
 | `<npm run test:coverage>` | Generate coverage report |
 | `<npm run test:mutation>` | Run mutation testing |
-| `<npm run test:e2e>` | Run end-to-end tests |
+| `<npm run test:e2e>` | Run backend end-to-end tests |
+| `<npx playwright test>` | Run browser end-to-end tests (if applicable) |
 
 ### Anti-Patterns to Avoid
 
@@ -138,27 +141,21 @@ stateDiagram-v2
 |------|---------|---------|------------------------|-----------|
 | <need> | <chosen> | <ver> | <alt1>, <alt2> | <why this one> |
 
-## Phase 1: Tests for <Feature A> [in-progress] (TEST)
+## Phase 1: <Feature A> [in-progress]
 
 - [x] [TEST-XX-01] <Write tests for component/function Y>
-- [ ] [TEST-XX-02] <Write tests for edge case Z> <- current
-- [ ] [TEST-XX-03] <Write integration tests for flow W>
+- [x] [IMPL-XX-02] <Implement Y> -> satisfies [TEST-XX-01]
+- [ ] [TEST-XX-03] <Write tests for edge case Z> <- current
+- [ ] [IMPL-XX-04] <Handle edge case Z> -> satisfies [TEST-XX-03]
+- [ ] [TEST-XX-05] <Write integration tests for flow W>
+- [ ] [IMPL-XX-06] <Wire up integration flow W> -> satisfies [TEST-XX-05]
 
-## Phase 2: Implement <Feature A> [pending] (IMPL)
-
-- [ ] [IMPL-XX-04] <Implement Y> -> satisfies [TEST-XX-01]
-- [ ] [IMPL-XX-05] <Handle edge case Z> -> satisfies [TEST-XX-02]
-- [ ] [IMPL-XX-06] <Wire up integration flow W> -> satisfies [TEST-XX-03]
-
-## Phase 3: Tests for <Feature B> [pending] (TEST)
+## Phase 2: <Feature B> [pending]
 
 - [ ] [TEST-XX-07] <Write tests for ...>
-- [ ] [TEST-XX-08] <Write tests for ...>
-
-## Phase 4: Implement <Feature B> [pending] (IMPL)
-
-- [ ] [IMPL-XX-09] <Implement ...> -> satisfies [TEST-XX-07]
-- [ ] [IMPL-XX-10] <Implement ...> -> satisfies [TEST-XX-08]
+- [ ] [IMPL-XX-08] <Implement ...> -> satisfies [TEST-XX-07]
+- [ ] [TEST-XX-09] <Write tests for ...>
+- [ ] [IMPL-XX-10] <Implement ...> -> satisfies [TEST-XX-09]
 
 ---
 
@@ -186,8 +183,10 @@ stateDiagram-v2
 
 | Task | Red (Failure Output) | Green (Pass Output) | Refactor (Changes) |
 |------|---------------------|--------------------|--------------------|
-| [TEST-XX-01] | `Expected: 201, Received: undefined` | `3 passed, 0 failed` | Extracted validation to `validateInput()` |
-| [IMPL-XX-04] | N/A (impl task) | `3 passed, 0 failed` | N/A |
+| [TEST-XX-01] | `Expected: 201, Received: undefined` | — | — |
+| [IMPL-XX-02] | — | `3 passed, 0 failed` | Extracted validation to `validateInput()` |
+| [TEST-XX-03] | `Expected: 400, Received: undefined` | — | — |
+| [IMPL-XX-04] | — | `5 passed, 0 failed` | — |
 
 ## Deviations
 
@@ -224,26 +223,32 @@ Phase headings include a status marker in square brackets:
 Only **one phase** should be `[in-progress]` at a time (though this isn't
 strictly enforced — sometimes parallel phases make sense).
 
-### Phase Types (TDD)
+### Phase Structure (TDD)
 
-Every phase is tagged with a type suffix:
+Phases group by **feature area**, not by test vs implementation. Each phase
+contains interleaved TEST-IMPL task pairs — each pair is one red-green-refactor
+cycle:
 
-| Suffix | Meaning |
-|--------|---------|
-| `(TEST)` | Write failing tests first — no production code |
-| `(IMPL)` | Write production code to make tests pass, then refactor |
+```markdown
+## Phase 1: Auth Foundation [in-progress]
+- [x] [TEST-AUTH-01] Write tests for JWT verification
+- [x] [IMPL-AUTH-02] Implement JWT verification -> satisfies [TEST-AUTH-01]
+- [ ] [TEST-AUTH-03] Write tests for token refresh <- current
+- [ ] [IMPL-AUTH-04] Implement token refresh -> satisfies [TEST-AUTH-03]
+```
 
-TEST phases always precede their corresponding IMPL phases. A feature's
-tests must be written and committed before its implementation begins.
+This is true TDD: write one test (RED), make it pass (GREEN), refactor,
+then write the next test. Not batched.
 
 ### Task Format (TDD)
 
 Tasks use markdown checkboxes with a typed task code prefix:
 
 ```markdown
-- [ ] [TEST-XX-01] Write tests for user creation (TEST phase task)
-- [ ] [IMPL-XX-02] Implement user creation -> satisfies [TEST-XX-01] (IMPL phase task)
-- [ ] [TEST-XX-03] Current test task <- current
+- [ ] [TEST-XX-01] Write tests for user creation <- current
+- [ ] [IMPL-XX-02] Implement user creation -> satisfies [TEST-XX-01]
+- [ ] [TEST-XX-03] Write tests for user deletion
+- [ ] [IMPL-XX-04] Implement user deletion -> satisfies [TEST-XX-03]
 ```
 
 **Task codes** use the format `<TYPE>-<PREFIX>-<NN>`:
@@ -255,11 +260,10 @@ Tasks use markdown checkboxes with a typed task code prefix:
   - `api-refactor` -> `API`
   - `fix-upload-bug` -> `UPL`
 - **Number**: Two-digit, auto-incrementing across ALL phases (not per-phase).
-  Start at `01`. Continuous numbering across TEST and IMPL phases.
+  Start at `01`. Tasks alternate TEST, IMPL, TEST, IMPL within each phase.
 
 IMPL tasks include a `-> satisfies [TEST-XX-NN]` reference linking back to
-the test task they satisfy. This creates traceability between tests and
-implementation.
+the test task they satisfy. Each IMPL task immediately follows its TEST task.
 
 The `<- current` marker indicates which task the AI should work on next.
 Only one task should have this marker at a time.
@@ -314,24 +318,20 @@ should answer these questions:
 
 **Good example:**
 ```markdown
-> Finished writing tests for the JWT refresh endpoint in
-> `tests/unit/auth/refresh.test.ts`. Three tests written: valid refresh,
-> expired token, and rotated token reuse detection. All three fail as
-> expected (RED phase).
+> Just completed the TEST-AUTH-03 / IMPL-AUTH-04 cycle (token refresh).
+> Tests pass, code refactored. Now starting the next cycle.
 >
-> TDD Phase: RED
-> Failing Tests:
->   - `should return new access token for valid refresh token` — 404 (route not implemented)
->   - `should reject expired refresh tokens` — 404
->   - `should reject reused refresh tokens` — 404
-> Last Test Run: `npm test -- --grep refresh` at 14:32, 0 passed / 3 failed
+> Last Cycle: [IMPL-AUTH-04] GREEN — 5/5 pass, refactored token naming
+> Current: [TEST-AUTH-05] Write OAuth callback tests
+> TDD Phase: RED (about to write test, run, confirm fail)
+> Last Test Run: `npm test -- --grep auth` at 14:32, 5 passed / 0 failed
 >
-> Next step: Move to IMPL phase — implement `POST /auth/refresh` handler
-> in `src/routes/auth.ts` to make the first test pass. Start with the
-> happy path (valid refresh -> new access token).
+> Next step: Write OAuth callback test in
+> `tests/unit/auth/oauth.test.ts`. Test: valid code exchange, expired
+> state param, invalid provider. Mock Google API with MSW.
 >
-> Key file: `src/auth/tokens.ts` (needs `rotateRefreshToken()` function)
-> Key file: `src/routes/auth.ts` (needs the POST handler, line ~45)
+> Key file: `tests/unit/auth/oauth.test.ts` (create — writing test)
+> Key file: `src/auth/oauth.ts` (doesn't exist yet — will implement in IMPL-AUTH-06)
 ```
 
 **Bad example:**
@@ -368,13 +368,15 @@ trail showing that TDD discipline was followed:
 ```markdown
 | Task | Red (Failure Output) | Green (Pass Output) | Refactor (Changes) |
 |------|---------------------|--------------------|--------------------|
-| [TEST-AUTH-01] | `Expected: 201, Received: undefined` | `3 passed, 0 failed` | Extracted shared fixtures to `test/helpers/auth.ts` |
-| [IMPL-AUTH-02] | N/A (impl task) | `3 passed, 0 failed` | Renamed `createToken` -> `issueAccessToken` for clarity |
+| [TEST-AUTH-01] | `Expected: 201, Received: undefined` (3 fail) | — | — |
+| [IMPL-AUTH-02] | — | `3 passed, 0 failed` | Extracted shared fixtures to `test/helpers/auth.ts` |
+| [TEST-AUTH-03] | `Expected rotated token, got same` (2 fail) | — | — |
+| [IMPL-AUTH-04] | — | `5 passed, 0 failed` | Renamed `createToken` -> `issueAccessToken` |
 ```
 
-- **TEST tasks**: Record the RED output (expected failure), then GREEN after
-  the corresponding IMPL task passes them.
-- **IMPL tasks**: Record GREEN (tests passing) and any REFACTOR changes.
+Each TEST-IMPL pair forms one red-green-refactor cycle:
+- **TEST task**: Record RED output (expected failure). GREEN comes from the next IMPL task.
+- **IMPL task**: Record GREEN (tests passing) and REFACTOR changes.
 - Keep entries concise — one line per task.
 
 ### Deviations
@@ -439,44 +441,43 @@ the stream. Need to fix the size limit and add proper error handling.
 | `npx vitest run` | Run all unit tests |
 | `npx vitest run tests/integration` | Run integration tests |
 
-## Phase 1: Tests for Upload Fix [in-progress] (TEST)
+## Phase 1: Upload Fix [in-progress]
 
 - [x] [TEST-UPL-01] Write test reproducing the bug with a 15MB file
-- [ ] [TEST-UPL-02] Write boundary tests (exactly 10MB, 10.1MB, 100MB) <- current
-- [ ] [TEST-UPL-03] Write test for proper error response on oversized files
-
-## Phase 2: Implement Upload Fix [pending] (IMPL)
-
-- [ ] [IMPL-UPL-04] Fix multipart parser size limit in `src/upload/parser.ts` -> satisfies [TEST-UPL-01]
-- [ ] [IMPL-UPL-05] Add proper error response for oversized files -> satisfies [TEST-UPL-02], [TEST-UPL-03]
+- [x] [IMPL-UPL-02] Fix multipart parser size limit in `src/upload/parser.ts` -> satisfies [TEST-UPL-01]
+- [ ] [TEST-UPL-03] Write boundary tests (exactly 10MB, 10.1MB, 100MB) <- current
+- [ ] [IMPL-UPL-04] Handle boundary sizes in parser -> satisfies [TEST-UPL-03]
+- [ ] [TEST-UPL-05] Write test for proper error response on oversized files
+- [ ] [IMPL-UPL-06] Add proper 413 error response -> satisfies [TEST-UPL-05]
 
 ---
 
 ## Resume Context
 
-> Phase 1 in progress. Wrote the reproduction test in
-> `tests/integration/upload.test.ts` — it fails with a timeout as expected
-> (the stream hangs instead of erroring).
+> Completed first cycle: TEST-UPL-01 (red: timeout on 15MB upload) then
+> IMPL-UPL-02 (green: fixed fileSize limit in busboy config). Starting
+> boundary condition tests next.
 >
-> TDD Phase: RED
-> Failing Tests:
->   - `should reject files over 10MB with 413 status` — timeout after 5s
-> Last Test Run: `npx vitest run tests/integration/upload.test.ts` at 10:15, 0 passed / 1 failed
+> Last Cycle: [IMPL-UPL-02] GREEN — 1/1 pass
+> Current: [TEST-UPL-03] Write boundary tests
+> TDD Phase: RED (about to write test, run, confirm fail)
+> Last Test Run: `npx vitest run tests/integration/upload.test.ts` at 10:25, 1 passed / 0 failed
 >
-> Next step: Write boundary condition tests for exactly 10MB, 10.1MB, and
-> 100MB file sizes. The upload handler is in `src/upload/parser.ts` and uses
-> `busboy` for multipart parsing. Suspect `limits.fileSize` is set too low.
+> Next step: Write boundary tests in `tests/integration/upload.test.ts`
+> for exactly 10MB, 10.1MB, and 100MB. The handler is in
+> `src/upload/parser.ts` using `busboy`. Fixed `limits.fileSize` in IMPL-02.
 
 ## TDD Log
 
 | Task | Red (Failure Output) | Green (Pass Output) | Refactor (Changes) |
 |------|---------------------|--------------------|--------------------|
-| [TEST-UPL-01] | `Timeout: test exceeded 5000ms` | Pending (IMPL phase) | — |
+| [TEST-UPL-01] | `Timeout: test exceeded 5000ms` | — | — |
+| [IMPL-UPL-02] | — | `1 passed, 0 failed` | — |
 ```
 
 ## Complex Spec Example (TDD)
 
-For larger features with multiple test/implement phase pairs:
+For larger features with multiple phases:
 
 ```markdown
 ---
@@ -535,85 +536,69 @@ conflict resolution handled via CRDTs.
 | `npx vitest --coverage` | Generate coverage report |
 | `npx playwright test` | Run E2E collaboration tests |
 
-## Phase 1: Tests for WebSocket Infrastructure [completed] (TEST)
+## Phase 1: WebSocket Infrastructure [completed]
 
 - [x] [TEST-RTC-01] Write tests for WS server connection lifecycle
-- [x] [TEST-RTC-02] Write tests for room-based connections (join, leave, broadcast)
-- [x] [TEST-RTC-03] Write tests for WS auth middleware (valid JWT, expired, missing)
-- [x] [TEST-RTC-04] Write tests for reconnection and state recovery
+- [x] [IMPL-RTC-02] Set up WebSocket server with Socket.io -> satisfies [TEST-RTC-01]
+- [x] [TEST-RTC-03] Write tests for room-based connections (join, leave, broadcast)
+- [x] [IMPL-RTC-04] Implement room-based connections -> satisfies [TEST-RTC-03]
+- [x] [TEST-RTC-05] Write tests for WS auth middleware (valid JWT, expired, missing)
+- [x] [IMPL-RTC-06] Add authentication middleware for WS -> satisfies [TEST-RTC-05]
+- [x] [TEST-RTC-07] Write tests for reconnection and state recovery
+- [x] [IMPL-RTC-08] Handle reconnection and connection state -> satisfies [TEST-RTC-07]
 
-## Phase 2: Implement WebSocket Infrastructure [completed] (IMPL)
-
-- [x] [IMPL-RTC-05] Set up WebSocket server with Socket.io -> satisfies [TEST-RTC-01]
-- [x] [IMPL-RTC-06] Implement room-based connections -> satisfies [TEST-RTC-02]
-- [x] [IMPL-RTC-07] Add authentication middleware for WS -> satisfies [TEST-RTC-03]
-- [x] [IMPL-RTC-08] Handle reconnection and connection state -> satisfies [TEST-RTC-04]
-
-## Phase 3: Tests for CRDT Integration [in-progress] (TEST)
+## Phase 2: CRDT Integration [in-progress]
 
 - [x] [TEST-RTC-09] Write tests for Yjs document sync between two clients
-- [x] [TEST-RTC-10] Write tests for document sync provider initialization
-- [ ] [TEST-RTC-11] Write tests for awareness protocol (cursors, selections) <- current
-- [ ] [TEST-RTC-12] Write tests for undo/redo with CRDT state
+- [x] [IMPL-RTC-10] Integrate Yjs as CRDT library -> satisfies [TEST-RTC-09]
+- [x] [TEST-RTC-11] Write tests for document sync provider initialization
+- [x] [IMPL-RTC-12] Create document sync provider -> satisfies [TEST-RTC-11]
+- [ ] [TEST-RTC-13] Write tests for awareness protocol (cursors, selections) <- current
+- [ ] [IMPL-RTC-14] Implement awareness protocol -> satisfies [TEST-RTC-13]
+- [ ] [TEST-RTC-15] Write tests for undo/redo with CRDT state
+- [ ] [IMPL-RTC-16] Add undo/redo manager -> satisfies [TEST-RTC-15]
 
-## Phase 4: Implement CRDT Integration [pending] (IMPL)
-
-- [ ] [IMPL-RTC-13] Integrate Yjs as CRDT library -> satisfies [TEST-RTC-09]
-- [ ] [IMPL-RTC-14] Create document sync provider -> satisfies [TEST-RTC-10]
-- [ ] [IMPL-RTC-15] Implement awareness protocol -> satisfies [TEST-RTC-11]
-- [ ] [IMPL-RTC-16] Add undo/redo manager -> satisfies [TEST-RTC-12]
-
-## Phase 5: Tests for UI Layer [pending] (TEST)
+## Phase 3: UI Layer [pending]
 
 - [ ] [TEST-RTC-17] Write tests for remote cursor rendering
-- [ ] [TEST-RTC-18] Write tests for selection highlights
-- [ ] [TEST-RTC-19] Write tests for presence indicator
-- [ ] [TEST-RTC-20] Write tests for offline state UI
+- [ ] [IMPL-RTC-18] Render remote cursors with user colors/names -> satisfies [TEST-RTC-17]
+- [ ] [TEST-RTC-19] Write tests for selection highlights
+- [ ] [IMPL-RTC-20] Show selection highlights -> satisfies [TEST-RTC-19]
+- [ ] [TEST-RTC-21] Write tests for presence indicator
+- [ ] [IMPL-RTC-22] Add presence indicator -> satisfies [TEST-RTC-21]
+- [ ] [TEST-RTC-23] Write tests for offline state UI
+- [ ] [IMPL-RTC-24] Handle offline state gracefully in UI -> satisfies [TEST-RTC-23]
 
-## Phase 6: Implement UI Layer [pending] (IMPL)
-
-- [ ] [IMPL-RTC-21] Render remote cursors with user colors/names -> satisfies [TEST-RTC-17]
-- [ ] [IMPL-RTC-22] Show selection highlights -> satisfies [TEST-RTC-18]
-- [ ] [IMPL-RTC-23] Add presence indicator -> satisfies [TEST-RTC-19]
-- [ ] [IMPL-RTC-24] Handle offline state gracefully in UI -> satisfies [TEST-RTC-20]
-
-## Phase 7: Tests for Edge Cases [pending] (TEST)
+## Phase 4: Edge Cases & Performance [pending]
 
 - [ ] [TEST-RTC-25] Write load test for 10+ simultaneous users
-- [ ] [TEST-RTC-26] Write perf tests for large document sync
-- [ ] [TEST-RTC-27] Write tests for rate limiting rapid edits
-- [ ] [TEST-RTC-28] Write conflict scenario integration tests
-
-## Phase 8: Implement Edge Cases [pending] (IMPL)
-
-- [ ] [IMPL-RTC-29] Optimize for 10+ simultaneous users -> satisfies [TEST-RTC-25]
-- [ ] [IMPL-RTC-30] Handle large document performance -> satisfies [TEST-RTC-26]
-- [ ] [IMPL-RTC-31] Add rate limiting for rapid edits -> satisfies [TEST-RTC-27]
-- [ ] [IMPL-RTC-32] Harden conflict resolution -> satisfies [TEST-RTC-28]
+- [ ] [IMPL-RTC-26] Optimize for 10+ simultaneous users -> satisfies [TEST-RTC-25]
+- [ ] [TEST-RTC-27] Write perf tests for large document sync
+- [ ] [IMPL-RTC-28] Handle large document performance -> satisfies [TEST-RTC-27]
+- [ ] [TEST-RTC-29] Write tests for rate limiting rapid edits
+- [ ] [IMPL-RTC-30] Add rate limiting for rapid edits -> satisfies [TEST-RTC-29]
+- [ ] [TEST-RTC-31] Write conflict scenario integration tests
+- [ ] [IMPL-RTC-32] Harden conflict resolution -> satisfies [TEST-RTC-31]
 
 ---
 
 ## Resume Context
 
-> Phase 3 is in progress. Wrote sync tests and provider init tests — both
-> fail as expected (CRDT not yet integrated). Currently writing awareness
-> protocol tests.
+> Completed Yjs sync cycle (TEST-09 red, IMPL-10 green) and provider
+> init cycle (TEST-11 red, IMPL-12 green, refactored provider config).
+> Starting awareness protocol test next.
 >
-> TDD Phase: RED
-> Failing Tests:
->   - `should broadcast cursor position to room participants` — TypeError: awareness.setLocalState is not a function
->   - `should sync Yjs document between two clients` — connection refused (no WS CRDT provider)
->   - `should initialize provider with document ID` — module not found
-> Last Test Run: `npx vitest run tests/unit/collab/` at 15:42, 2 passed / 4 failed
+> Last Cycle: [IMPL-RTC-12] GREEN — 6/6 pass, refactored provider config
+> Current: [TEST-RTC-13] Write awareness protocol tests
+> TDD Phase: RED (about to write test, run, confirm fail)
+> Last Test Run: `npx vitest run tests/unit/collab/` at 15:42, 6 passed / 0 failed
 >
 > Next step: Write awareness protocol tests in
-> `tests/unit/collab/awareness.test.ts`. Need tests for: local cursor
-> broadcast, remote cursor receive, cursor removal on disconnect, and
-> selection range awareness.
+> `tests/unit/collab/awareness.test.ts`. Tests: local cursor broadcast,
+> remote cursor receive, cursor removal on disconnect, selection range.
 >
-> Key file: `tests/unit/collab/awareness.test.ts` (create — writing tests)
-> Key file: `tests/unit/collab/sync.test.ts` (done — 2 failing tests)
-> Reference: Yjs awareness docs at https://docs.yjs.dev/api/about-awareness
+> Key file: `tests/unit/collab/awareness.test.ts` (create — writing test)
+> Key file: `src/collab/awareness.ts` (doesn't exist — will create in IMPL-RTC-14)
 
 ## Decision Log
 
@@ -629,16 +614,18 @@ conflict resolution handled via CRDTs.
 
 | Task | Red (Failure Output) | Green (Pass Output) | Refactor (Changes) |
 |------|---------------------|--------------------|--------------------|
-| [TEST-RTC-01] | `ECONNREFUSED 127.0.0.1:3001` | `4 passed` (after Phase 2) | — |
-| [TEST-RTC-02] | `timeout waiting for room join event` | `3 passed` (after Phase 2) | — |
-| [TEST-RTC-03] | `Expected 401, got undefined` | `5 passed` (after Phase 2) | — |
-| [TEST-RTC-04] | `reconnection callback not called` | `2 passed` (after Phase 2) | — |
-| [IMPL-RTC-05] | N/A | `4 passed` | Extracted server config to `src/config/ws.ts` |
-| [IMPL-RTC-06] | N/A | `7 passed` | — |
-| [IMPL-RTC-07] | N/A | `12 passed` | Reused existing JWT verify from `src/auth/verify.ts` |
-| [IMPL-RTC-08] | N/A | `14 passed` | — |
-| [TEST-RTC-09] | `connection refused` | Pending (IMPL phase) | — |
-| [TEST-RTC-10] | `module not found` | Pending (IMPL phase) | — |
+| [TEST-RTC-01] | `ECONNREFUSED 127.0.0.1:3001` (4 fail) | — | — |
+| [IMPL-RTC-02] | — | `4 passed` | Extracted server config to `src/config/ws.ts` |
+| [TEST-RTC-03] | `timeout waiting for room join event` (3 fail) | — | — |
+| [IMPL-RTC-04] | — | `7 passed` | — |
+| [TEST-RTC-05] | `Expected 401, got undefined` (5 fail) | — | — |
+| [IMPL-RTC-06] | — | `12 passed` | Reused JWT verify from `src/auth/verify.ts` |
+| [TEST-RTC-07] | `reconnection callback not called` (2 fail) | — | — |
+| [IMPL-RTC-08] | — | `14 passed` | — |
+| [TEST-RTC-09] | `connection refused` (2 fail) | — | — |
+| [IMPL-RTC-10] | — | `16 passed` | — |
+| [TEST-RTC-11] | `module not found` (2 fail) | — | — |
+| [IMPL-RTC-12] | — | `18 passed` | Extracted provider config to `src/config/crdt.ts` |
 
 ## Deviations
 

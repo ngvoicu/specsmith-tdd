@@ -2,7 +2,7 @@
 
 **Plan mode, but actually good — with strict test-driven development.**
 
-Spec Smith TDD is a standalone fork of [Spec Smith](https://github.com/ngvoicu/specsmith) that enforces strict TDD in AI coding workflows. Every task starts with a failing test, no production code ships without red tests, and all tests are isolated. Specs have test-interleaved phases, a Testing Architecture section, and a TDD Log audit trail proving red-green-refactor discipline was followed.
+Spec Smith TDD is a standalone fork of [Spec Smith](https://github.com/ngvoicu/specsmith) that enforces strict TDD in AI coding workflows. Every task starts with a failing test, no production code ships without red tests, and all tests are isolated. Specs have feature phases with alternating TEST-IMPL task pairs (true red-green-refactor per pair), a Testing Architecture section, and a TDD Log audit trail proving discipline was followed.
 
 Works with Claude Code (as a plugin), Codex, Cursor, Windsurf, Cline, Gemini CLI, and any AI coding tool that can read files.
 
@@ -33,7 +33,7 @@ Run `/specsmith-tdd:forge "add user authentication with OAuth"` and Spec Smith T
 
 **4. More Interviews** — As many rounds as needed until every task in the spec can be described concretely. No ambiguous "figure out X" tasks.
 
-**5. Write Spec** — Synthesizes all research and interviews into a comprehensive SPEC.md with architecture diagrams (ASCII/Mermaid), **Testing Architecture** (framework, isolation strategy, coverage targets, test commands, anti-patterns), library comparison tables, **test-interleaved phases** (TEST phase then IMPL phase), tasks with `[TEST-XX-NN]` and `[IMPL-XX-NN]` codes, **TDD Log**, a decision log, and resume context. Runs a coherence and logic review — including verifying every IMPL task references a TEST task — before presenting.
+**5. Write Spec** — Synthesizes all research and interviews into a comprehensive SPEC.md with architecture diagrams (ASCII/Mermaid), **Testing Architecture** (framework, isolation strategy, coverage targets, test commands, anti-patterns), library comparison tables, **feature phases with alternating TEST-IMPL task pairs** (true red-green-refactor), `[TEST-XX-NN]` and `[IMPL-XX-NN]` codes, **TDD Log**, a decision log, and resume context. Runs a coherence and logic review — including verifying every IMPL task immediately follows its TEST task — before presenting.
 
 **6. Implement** — Works through the spec task by task (via `/implement`), enforcing strict red-green-refactor: write test, run it (must fail), write minimum code, run test (must pass), refactor, run test (must still pass). Every transition is logged in the TDD Log.
 
@@ -103,42 +103,36 @@ API. Uses the existing middleware pattern in src/middleware/.
 | `npx vitest run` | Run all tests |
 | `npx vitest --coverage` | Generate coverage report |
 
-## Phase 1: Tests for Auth Foundation [completed] (TEST)
+## Phase 1: Auth Foundation [completed]
 - [x] [TEST-AUTH-01] Write tests for JWT generation and verification
-- [x] [TEST-AUTH-02] Write tests for User model CRUD
-- [x] [TEST-AUTH-03] Write tests for refresh token rotation
+- [x] [IMPL-AUTH-02] Set up auth middleware -> satisfies [TEST-AUTH-01]
+- [x] [TEST-AUTH-03] Write tests for User model CRUD
+- [x] [IMPL-AUTH-04] Create User model with Prisma -> satisfies [TEST-AUTH-03]
+- [x] [TEST-AUTH-05] Write tests for refresh token rotation
+- [x] [IMPL-AUTH-06] Implement JWT + refresh rotation -> satisfies [TEST-AUTH-05]
 
-## Phase 2: Implement Auth Foundation [completed] (IMPL)
-- [x] [IMPL-AUTH-04] Set up auth middleware -> satisfies [TEST-AUTH-01]
-- [x] [IMPL-AUTH-05] Create User model with Prisma -> satisfies [TEST-AUTH-02]
-- [x] [IMPL-AUTH-06] Implement JWT + refresh rotation -> satisfies [TEST-AUTH-01], [TEST-AUTH-03]
-
-## Phase 3: Tests for OAuth Integration [in-progress] (TEST)
+## Phase 2: OAuth Integration [in-progress]
 - [x] [TEST-AUTH-07] Write tests for Google OAuth flow
-- [ ] [TEST-AUTH-08] Write tests for GitHub OAuth flow <- current
-- [ ] [TEST-AUTH-09] Write tests for token exchange
-
-## Phase 4: Implement OAuth Integration [pending] (IMPL)
-- [ ] [IMPL-AUTH-10] Google OAuth provider -> satisfies [TEST-AUTH-07]
-- [ ] [IMPL-AUTH-11] GitHub OAuth provider -> satisfies [TEST-AUTH-08]
-- [ ] [IMPL-AUTH-12] Token exchange flow -> satisfies [TEST-AUTH-09]
+- [x] [IMPL-AUTH-08] Google OAuth provider -> satisfies [TEST-AUTH-07]
+- [ ] [TEST-AUTH-09] Write tests for GitHub OAuth flow <- current
+- [ ] [IMPL-AUTH-10] GitHub OAuth provider -> satisfies [TEST-AUTH-09]
+- [ ] [TEST-AUTH-11] Write tests for token exchange
+- [ ] [IMPL-AUTH-12] Token exchange flow -> satisfies [TEST-AUTH-11]
 
 ---
 
 ## Resume Context
-> Phase 3 in progress. Google OAuth tests written and failing as expected
-> (route not implemented). Currently writing GitHub OAuth callback tests.
+> Completed Google OAuth cycle (TEST-07 red, IMPL-08 green+refactored).
+> Starting GitHub OAuth callback tests next.
 >
-> TDD Phase: RED
-> Failing Tests:
->   - `should exchange code for tokens` — 404 (route not implemented)
->   - `should reject invalid state parameter` — 404
-> Last Test Run: `npx vitest run tests/auth/oauth` at 14:32, 2 passed / 3 failed
+> Last Cycle: [IMPL-AUTH-08] GREEN — 8/8 pass, refactored OAuth config
+> Current: [TEST-AUTH-09] Write GitHub OAuth tests
+> TDD Phase: RED (about to write test, run, confirm fail)
+> Last Test Run: `npx vitest run tests/auth/` at 14:32, 8 passed / 0 failed
 >
 > Next step: Write GitHub OAuth callback tests in
 > `tests/auth/oauth/github.test.ts`. Use the same pattern as Google in
-> `tests/auth/oauth/google.test.ts`. The GitHub OAuth app credentials
-> are in `.env` as GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.
+> `tests/auth/oauth/google.test.ts`.
 
 ## Decision Log
 | Date | Decision | Rationale |
@@ -151,18 +145,19 @@ API. Uses the existing middleware pattern in src/middleware/.
 ## TDD Log
 | Task | Red | Green | Refactor |
 |------|-----|-------|----------|
-| [TEST-AUTH-01] | `Expected: valid JWT, Received: undefined` | `3 passed` (after Phase 2) | — |
-| [TEST-AUTH-02] | `relation "users" does not exist` | `4 passed` (after Phase 2) | — |
-| [TEST-AUTH-03] | `Expected rotated token, got same token` | `2 passed` (after Phase 2) | — |
-| [IMPL-AUTH-04] | N/A | `3 passed` | Extracted middleware config to constants |
-| [IMPL-AUTH-05] | N/A | `7 passed` | — |
-| [IMPL-AUTH-06] | N/A | `9 passed` | Renamed `createToken` -> `issueAccessToken` |
-| [TEST-AUTH-07] | `404: route not implemented` | Pending | — |
+| [TEST-AUTH-01] | `Expected: valid JWT, Received: undefined` (3 fail) | — | — |
+| [IMPL-AUTH-02] | — | `3 passed` | Extracted middleware config to constants |
+| [TEST-AUTH-03] | `relation "users" does not exist` (4 fail) | — | — |
+| [IMPL-AUTH-04] | — | `7 passed` | — |
+| [TEST-AUTH-05] | `Expected rotated token, got same token` (2 fail) | — | — |
+| [IMPL-AUTH-06] | — | `9 passed` | Renamed `createToken` -> `issueAccessToken` |
+| [TEST-AUTH-07] | `404: route not implemented` (3 fail) | — | — |
+| [IMPL-AUTH-08] | — | `12 passed` | Extracted OAuth config to constants |
 
 ## Deviations
 | Task | Spec Said | Actually Did | Why |
 |------|-----------|-------------|-----|
-| AUTH-04 | Use passport.js | Direct middleware | Simpler for JWT-only; avoids passport session overhead |
+| IMPL-AUTH-02 | Use passport.js | Direct middleware | Simpler for JWT-only; avoids passport session overhead |
 ```
 
 ### The TDD Difference
@@ -171,17 +166,18 @@ The key difference from [Spec Smith](https://github.com/ngvoicu/specsmith) is th
 
 | Aspect | Spec Smith | Spec Smith TDD |
 |--------|-----------|---------------|
-| Phase structure | Sequential phases | **Test-interleaved**: TEST phase then IMPL phase |
+| Phase structure | Sequential phases | **Feature phases** with interleaved TEST-IMPL task pairs |
+| Task ordering | Independent tasks | **TEST-IMPL alternating**: red-green-red-green per pair |
 | Task codes | `[AUTH-01]` | `[TEST-AUTH-01]` and `[IMPL-AUTH-02]` |
 | Task linking | Independent | IMPL tasks have `-> satisfies [TEST-XX-NN]` |
 | Implementation | Write code, then test | **Write test (RED), run, implement (GREEN), refactor** |
 | Test execution | Optional | **Mandatory at every RED-GREEN-REFACTOR transition** |
 | Testing Architecture | Testing strategy section | **Full Testing Architecture**: framework, isolation, coverage, commands, anti-patterns |
-| Audit trail | None | **TDD Log** with red/green/refactor output |
-| Resume context | File paths, next step | File paths, next step, **TDD phase, failing tests, last test run** |
+| Audit trail | None | **TDD Log** with red/green/refactor output per cycle |
+| Resume context | File paths, next step | File paths, next step, **last cycle, TDD phase** |
 | Research | Codebase + web | Codebase + web + **test infrastructure analysis** |
 | Interviews | Feature questions | Feature questions + **testing preferences** |
-| Blocking rule | None | **No production code without a failing test** |
+| Blocking rule | None | **Per-task**: no IMPL until its TEST is done and failing |
 | Test claims | Allowed | **Must run actual tests** — no "tests would pass" |
 
 ## Installation
@@ -257,7 +253,7 @@ For other tools, this installs the SKILL.md which teaches the tool the full TDD 
 /specsmith-tdd:forge "add OAuth authentication"
 → Deep research (codebase + internet + Context7 + library comparison + test infra)
 → Interview rounds (targeted questions + testing preferences)
-→ Writes SPEC.md with Testing Architecture, test-interleaved phases, TDD Log
+→ Writes SPEC.md with Testing Architecture, alternating TEST-IMPL tasks, TDD Log
 → Coherence review (incl. TEST↔IMPL cross-references) before presenting
 
 # Implement with strict red-green-refactor
@@ -288,7 +284,7 @@ For other tools, this installs the SKILL.md which teaches the tool the full TDD 
 
 Once configured via `npx skills add`, every tool understands the same TDD spec lifecycle. Here's the complete workflow:
 
-**Create a spec** — Ask the tool to plan or spec out work. It creates `.specs/<id>/SPEC.md` with Testing Architecture, test-interleaved phases, TDD Log, a decision log, and resume context.
+**Create a spec** — Ask the tool to plan or spec out work. It creates `.specs/<id>/SPEC.md` with Testing Architecture, feature phases with alternating TEST-IMPL tasks, TDD Log, a decision log, and resume context.
 
 **Resume** — The tool reads `.specs/registry.md` to find the active spec, loads the SPEC.md, finds the `← current` task, reads the Resume Context section (including TDD phase and failing tests), and continues from exactly where you left off.
 
@@ -330,39 +326,36 @@ gemini "pause and save context"
 gemini "switch to auth-system"
 ```
 
-## The TDD Implementation Cycle
+## The TDD Cycle
 
-This is the core of Spec Smith TDD — what makes it different from regular Spec Smith.
-
-### TEST Tasks (RED Phase)
+This is the core of Spec Smith TDD. Each TEST-IMPL task pair is one red-green-refactor cycle:
 
 ```
-1. Mark task ← current
-2. Write test file with assertions from the spec
-3. RUN tests → must FAIL (proves tests are meaningful)
-4. If tests pass: STOP — feature already exists or tests are vacuous
-5. Log red output in TDD Log
-6. Check off task ✓
+[TEST-AUTH-01] Write test for JWT verify
+  → Write test file
+  → RUN tests → FAIL (RED) ✓
+  → Log red output
+
+[IMPL-AUTH-02] Implement JWT verify -> satisfies [TEST-AUTH-01]
+  → Write MINIMUM code to pass
+  → RUN tests → PASS (GREEN) ✓
+  → Log green output
+  → REFACTOR: clean up
+  → RUN tests → STILL PASS ✓
+  → Log refactor changes
+
+[TEST-AUTH-03] Write test for token refresh    ← next cycle starts
+  → ...
 ```
 
-### IMPL Tasks (GREEN + REFACTOR Phase)
+Then the next pair, and the next, and the next. True red-green-red-green.
 
-```
-1. Mark task ← current
-2. Write MINIMUM code to pass referenced tests
-3. RUN tests → must PASS
-4. If tests fail: keep implementing until green
-5. Log green output in TDD Log
-6. REFACTOR: clean up, remove duplication, improve naming
-7. RUN tests → must STILL PASS
-8. Log refactor changes in TDD Log
-9. Check off task ✓
-```
+### Rules
 
-### Blocking Rules
-
-- **No production code without a failing test.** If about to write implementation before tests exist, STOP and write tests first.
-- **No assumed test results.** Tests MUST be run via the actual test runner (`pytest`, `vitest`, `cargo test`, `go test`, `dotnet test`, etc.) at every RED-GREEN-REFACTOR transition. Claims like "tests would pass" are not acceptable.
+- **Per-task blocking.** Each IMPL task cannot start until its TEST task is done and tests are confirmed failing.
+- **3 runs per cycle.** Tests MUST be run via Bash at every RED, GREEN, and REFACTOR transition. Claims like "tests would pass" are never acceptable.
+- **Tests are sacred.** Tests define expected behavior. During GREEN, if tests fail, fix the production code — never modify test assertions to match what the code returns. The only reason to touch a test is an actual bug (wrong import, syntax error). If a test expectation seems wrong, STOP and ask the user.
+- **Self-check before every task.** Am I about to write code without a failing test? Am I about to skip running tests? Am I about to modify a test to make it pass? If yes, stop and correct.
 
 ## Multi-Tool Support
 
@@ -433,7 +426,7 @@ Synthesizes everything into a comprehensive SPEC.md:
 - Architecture diagrams (ASCII and/or Mermaid)
 - **Testing Architecture** — framework & tools table, isolation strategy per layer, coverage targets, test commands, anti-patterns to avoid
 - Library comparison table with alternatives and rationale
-- **Test-interleaved phases**: TEST phase for Feature A, then IMPL phase for Feature A, then TEST for Feature B, etc.
+- **Feature phases with alternating TEST-IMPL task pairs**: write test, implement, write test, implement — true red-green-refactor
 - Tasks with `[TEST-PREFIX-NN]` and `[IMPL-PREFIX-NN]` codes, with `-> satisfies` cross-references
 - **TDD Log** (empty, filled during implementation)
 - Decision log, resume context, deviations table
@@ -447,7 +440,7 @@ Synthesizes everything into a comprehensive SPEC.md:
 6. Library choices are consistent throughout
 7. Overview accurately summarizes what phases deliver
 8. No gaps — everything implementation needs is covered by a task
-9. **Every IMPL phase has a preceding TEST phase**
+9. **Tasks alternate TEST-IMPL within each phase** (true red-green-refactor)
 10. **Every `[IMPL-XX-NN]` task references at least one `[TEST-XX-NN]` task**
 11. **Every `[TEST-XX-NN]` task is referenced by at least one `[IMPL-XX-NN]`**
 
@@ -467,21 +460,21 @@ Works through the spec task by task (via `/implement`), enforcing strict TDD:
 
 Works with any tech stack. Built-in testing knowledge in [`references/testing-knowledge.md`](references/testing-knowledge.md) covering:
 
-| Language | Test Frameworks | Mocking | Testcontainers | Coverage | Mutation Testing |
-|----------|----------------|---------|----------------|----------|-----------------|
-| TypeScript/JS | Vitest, Jest, Mocha | MSW, vi.mock, Sinon | testcontainers | v8, istanbul, c8 | Stryker |
-| Python | pytest, unittest | pytest-mock, unittest.mock | testcontainers | coverage.py | mutmut, cosmic-ray |
-| Java | JUnit 5, TestNG | Mockito, WireMock | testcontainers | JaCoCo | Pitest |
-| Kotlin | JUnit 5, Kotest | MockK | testcontainers | JaCoCo, Kover | Pitest + pitest-kotlin |
-| Go | testing (stdlib) | testify/mock, gomock | testcontainers-go | go test -cover | go-mutesting |
-| Rust | cargo test | mockall | testcontainers | cargo-tarpaulin | cargo-mutants |
-| C# | xUnit, NUnit, MSTest | Moq, NSubstitute | Testcontainers | coverlet | Stryker.NET |
+| Language | Test Frameworks | Mocking | Testcontainers | Backend E2E | Browser E2E |
+|----------|----------------|---------|----------------|------------|------------|
+| TypeScript/JS | Vitest, Jest, Mocha | MSW, vi.mock, Sinon | testcontainers | Supertest | Playwright, Cypress |
+| Python | pytest, unittest | pytest-mock, responses, respx | testcontainers | httpx TestClient | Playwright |
+| Java | JUnit 5, TestNG | Mockito, WireMock | testcontainers | MockMvc, RestAssured | Playwright, Selenium |
+| Kotlin | JUnit 5, Kotest | MockK, WireMock | testcontainers | MockMvc, WebTestClient | Playwright |
+| Go | testing (stdlib) | testify/mock, gomock | testcontainers-go | net/http/httptest | Rod, chromedp |
+| Rust | cargo test | mockall, wiremock | testcontainers | actix_web::test | — |
+| C# | xUnit, NUnit, MSTest | Moq, WireMock.Net | Testcontainers | WebApplicationFactory | Playwright |
 
-Also covers: property-based testing (fast-check, Hypothesis, jqwik, proptest), isolation patterns, and common anti-patterns (in-memory DB substitutes, mocking internals, execution order dependencies, sleep-based synchronization).
+Also covers: coverage tools (v8, JaCoCo, coverage.py, cargo-tarpaulin, coverlet), mutation testing (Stryker, Pitest, mutmut, cargo-mutants), property-based testing (fast-check, Hypothesis, jqwik, proptest), isolation patterns, and common anti-patterns (in-memory DB substitutes, mocking internals, calling external services in tests).
 
 ## Plan Mode
 
-Spec Smith TDD **bypasses** Claude Code's built-in plan mode. The `/forge` command IS your planning phase — deep research, interviews, spec writing with Testing Architecture and test-interleaved phases. You don't need plan mode at all.
+Spec Smith TDD **bypasses** Claude Code's built-in plan mode. The `/forge` command IS your planning phase — deep research, interviews, spec writing with Testing Architecture and alternating TEST-IMPL task pairs. You don't need plan mode at all.
 
 If you happen to be in plan mode when you run `/specsmith-tdd:forge`, Spec Smith TDD asks you to exit plan mode first (Shift+Tab), then rerun `/specsmith-tdd:forge`.
 
@@ -533,7 +526,7 @@ Full specification in [`references/spec-format.md`](references/spec-format.md). 
 ### Conventions
 
 - **Phase markers**: `[pending]`, `[in-progress]`, `[completed]`, `[blocked]`
-- **Phase types**: `(TEST)` for test-writing phases, `(IMPL)` for implementation phases
+- **Task types**: `[TEST-XX-NN]` for test tasks, `[IMPL-XX-NN]` for implementation tasks — alternating within each phase
 - **Task codes**: `[TEST-PREFIX-NN]` for test tasks, `[IMPL-PREFIX-NN]` for implementation tasks — unique per task, auto-incrementing across all phases
 - **Satisfies references**: `[IMPL-XX-NN] <task> -> satisfies [TEST-XX-NN]` — links implementation to the tests it makes pass
 - **Task checkboxes**: `- [ ] [TEST-AUTH-01]` unchecked, `- [x] [TEST-AUTH-01]` done
@@ -555,7 +548,7 @@ Spec Smith TDD's `/forge` command does what plan mode should do:
 
 - **Research depth**: Reads 10-20+ files, searches the web, pulls library docs, analyzes test infrastructure. Not a quick scan.
 - **Interviews**: Asks you targeted questions based on what it found — including testing preferences, isolation strategies, and coverage targets. Multiple rounds until there's no ambiguity.
-- **TDD structure**: Every spec has test-interleaved phases. Tests are written before production code. Always.
+- **True TDD**: Every spec has alternating TEST-IMPL task pairs. Write one test (RED), make it pass (GREEN), refactor, next test. Not batched.
 - **Red-green-refactor enforcement**: The implement command runs tests at every transition. No "tests would pass" hand-waving.
 - **Audit trail**: The TDD Log proves discipline was followed — red output, green output, refactor changes for every task.
 - **Persistence**: Everything is saved to files. Research notes, interviews, the spec itself, the TDD Log. Nothing lives only in context.

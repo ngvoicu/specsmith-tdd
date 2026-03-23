@@ -200,7 +200,18 @@ testing setup so the spec can prescribe the right test strategy.
    - Check if Docker is referenced in CI config
    - Note which services are containerized (databases, message queues, etc.)
 
-5. **Evaluate coverage and quality tools** —
+5. **Analyze E2E test setup** —
+   - Check for backend e2e tests: Supertest, httpx TestClient, MockMvc,
+     WebTestClient, RestAssured, httptest, actix_web::test
+   - Check for browser e2e tests: Playwright, Cypress, Selenium
+   - Determine if backend e2e tests use real DBs (Testcontainers) or mocks
+   - Check if external APIs are mocked at the HTTP boundary (MSW, WireMock)
+     or called directly (anti-pattern)
+   - Look for e2e test configuration (`playwright.config.*`, `cypress.config.*`,
+     test scripts with `e2e` in the name)
+   - Note whether e2e tests exercise the full middleware stack or skip layers
+
+6. **Evaluate coverage and quality tools** —
    - Check for coverage configuration (`coverage` in vitest/jest config,
      `.coveragerc`, `jacoco` plugin, `tarpaulin` dependency)
    - Look for mutation testing tools (`stryker.conf`, `pitest` plugin,
@@ -312,7 +323,7 @@ Save your research to the path you're given. Use this exact structure:
 - **Test framework**: <name> <version> (detected from <config file>)
 - **Test runner**: <name> (CLI command: `<command>`)
 - **Test directory convention**: <colocated / separate tree / mirror>
-- **Test file count**: <N> unit, <N> integration, <N> e2e, <N> total
+- **Test file count**: <N> unit, <N> integration, <N> backend e2e, <N> browser e2e, <N> total
 - **Mocking library**: <name> — <style: module replacement / network intercept / proxy>
 - **Coverage tool**: <name> — current coverage: <X%> line, <X%> branch (if available)
 - **Mutation testing**: <name> or "Not configured"
@@ -343,7 +354,8 @@ Save your research to the path you're given. Use this exact structure:
 | Coverage | <keep current / add X> | <why> |
 | Mutation testing | <add X / keep current> | <why> |
 | Property-based | <add X / not needed> | <why> |
-| E2E | <keep current / add X> | <why> |
+| E2E (backend) | <Supertest/httpx/MockMvc + Testcontainers> | <why> |
+| E2E (frontend) | <Playwright/Cypress / not applicable> | <why> |
 
 ## Risk Assessment
 - Breaking changes: <risk>

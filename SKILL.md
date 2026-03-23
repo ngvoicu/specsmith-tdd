@@ -89,13 +89,12 @@ When the user says "resume", "what was I working on", or similar:
    ```
    Resuming: User Auth System
    Progress: 5/12 tasks (Phase 2: OAuth Integration)
-   Current: [TEST-AUTH-05] Write OAuth callback tests
-   TDD Phase: RED
-   Failing Tests: 3 (test_oauth_callback, test_token_refresh, test_revoke)
-   Last Test Run: 2 passed, 3 failed (pytest)
-   Context: Token exchange is working. Need to handle the callback
-   URL parsing and store refresh tokens in the user model.
-   Next file: tests/auth/test_oauth_google.py
+   Current: [TEST-AUTH-07] Write OAuth callback tests
+   TDD Phase: RED (next: write test, run, confirm fail)
+   Last Cycle: [IMPL-AUTH-06] GREEN — 4/4 pass
+   Context: Finished Google OAuth (TEST-05 red, IMPL-06 green+refactored).
+   Starting GitHub OAuth callback tests next.
+   Next file: tests/auth/test_oauth_github.py
    ```
 
 6. Begin working on the current task — don't wait for permission
@@ -122,51 +121,109 @@ Parse the user's request to determine scope:
 3. Identify the target tasks based on scope
 4. For each task in order, determine if it is a TEST or IMPL task by its
    task code prefix (`TEST-` vs `IMPL-`)
+5. Tasks within a phase alternate: TEST then IMPL, TEST then IMPL. Each
+   TEST-IMPL pair is one red-green-refactor cycle.
 
-**For TEST tasks (RED phase):**
-1. Mark the task with `← current`
+**For each TEST-IMPL pair (one red-green-refactor cycle):**
+
+**RED — TEST task:**
+1. Mark the TEST task with `← current`
 2. Write the test file at the path specified in the task, with the assertions
    and test descriptions listed
-3. RUN the project's test command — tests MUST fail (this proves they are
-   meaningful and not vacuous)
-4. If tests pass unexpectedly: STOP and report the anomaly to the user.
-   Either the feature already exists or the tests are not asserting correctly.
-5. Log the red output (command, failure summary) in the TDD Log
-6. Check off the task: `- [ ]` -> `- [x]`, remove `← current`
-
-**For IMPL tasks (GREEN phase):**
-1. Mark the task with `← current`
-2. Write the minimum production code needed to pass the referenced tests
-   (each IMPL task has a `-> satisfies [TEST-XX-NN]` reference)
-3. RUN the test command — tests MUST pass
-4. If tests still fail: keep implementing until green. Do not move on with
-   failing tests.
-5. Log the green output (command, pass summary) in the TDD Log
-6. REFACTOR: clean up the code — remove duplication, improve naming, extract
-   helpers. Then RUN tests again to confirm they are still green. Log
-   refactoring changes in the TDD Log.
+3. **GATE: RUN the tests via Bash.** Do not proceed without running them.
+4. **GATE: Confirm tests FAIL.** If all tests fail — good, this is RED.
+5. If tests pass unexpectedly: **STOP.** Report the anomaly to the user.
+   Do not proceed. Either the feature already exists or the tests are wrong.
+6. Log the red output in the TDD Log using this exact format:
+   `| [TEST-XX-NN] | <command>: N tests, N failed — <key failure message> | — | — |`
 7. Check off the task: `- [ ]` -> `- [x]`, remove `← current`
-8. Update progress and date in `.specs/registry.md`
+
+**GREEN — IMPL task:**
+1. Mark the IMPL task with `← current`
+2. Read the test file from the preceding TEST task — understand exactly what
+   the tests expect
+3. Write the minimum production code to make the tests pass. Only what the
+   tests require. Nothing more.
+4. **GATE: RUN the tests via Bash.** Do not proceed without running them.
+5. **GATE: Confirm tests PASS.** If any test fails, fix the production code
+   and run again. Repeat until green. Do not modify tests to make them pass
+   (see Tests Are Sacred below).
+6. Log the green output in the TDD Log:
+   `| [IMPL-XX-NN] | — | <command>: N passed, 0 failed | — |`
+
+**REFACTOR — still on the IMPL task:**
+1. Clean up the production code — remove duplication, improve naming, extract
+   helpers
+2. **GATE: RUN tests again via Bash.** Confirm they are still green.
+3. If refactoring broke tests: undo the refactoring, try a different approach.
+4. Log refactoring in the TDD Log Refactor column (or "none")
+5. Check off the IMPL task: `- [ ]` -> `- [x]`, remove `← current`
+6. Update progress and date in `.specs/registry.md`
+
+**Then move to the next TEST-IMPL pair and repeat.**
+
+#### Self-Check Before Every Task
+
+Before starting any task, pause and verify:
+
+- [ ] Am I about to write production code? → Is there a failing test for it?
+- [ ] Am I about to skip running tests? → Run them. Always.
+- [ ] Am I about to modify a test to make it pass? → Stop. Fix the code instead.
+- [ ] Did I log the last task's output in the TDD Log? → Do it now.
+- [ ] Did I update the checkbox and `← current` marker? → Do it now.
+
+If any answer is wrong, correct it before proceeding.
+
+#### Violation Examples
+
+These are common TDD violations. If you recognize yourself doing any of
+these, **STOP immediately** and correct course:
+
+| Violation | What it looks like | Correct action |
+|-----------|-------------------|---------------|
+| Writing code before test | "I'll implement the handler first, then test it" | Write the test first. Watch it fail. Then implement. |
+| Skipping test execution | "The tests would pass since I wrote the correct code" | Run the tests via Bash. Read the actual output. |
+| Modifying tests to pass | "I'll adjust the assertion to match what the code returns" | The test is the spec. Fix the production code to match. |
+| Batching tests | "I'll write all 3 tests, then implement all 3" | Write one test. Implement. Write the next test. Implement. |
+| Skipping refactor | "The code is fine, moving to the next test" | Review the code. Decide consciously. Log "none" if no changes. |
+| Forgetting TDD Log | "I'll update the log later" | Update it now, after each task. It's the audit trail. |
+
+#### Tests Are Sacred
+
+Tests define expected behavior. They are the specification in code form.
+During the GREEN phase, when tests fail:
+
+- **Fix the production code**, not the tests
+- The only time you modify a test is when it has an actual bug (wrong import,
+  syntax error, broken test setup) — not when the assertion doesn't match
+  what your code returns
+- If a test expects behavior X and your code does behavior Y, your code is
+  wrong — make it do X
+- If you believe the test expectation is genuinely incorrect (e.g., the spec
+  changed, the user gave new requirements), **STOP and ask the user** before
+  modifying the test. Do not silently change test expectations.
 
 #### Blocking Rule
 
-No production code without corresponding failing tests. If about to write
-implementation code before tests exist for that functionality, STOP and
-write tests first. This is non-negotiable.
+Each IMPL task is preceded by its TEST task. You cannot start an IMPL task
+until its TEST task is completed and the tests are confirmed failing. This
+is enforced per-task. If about to write implementation code before its test
+exists, STOP and write the test first. Non-negotiable.
 
 #### Test Execution Rule
 
-MUST run the actual test command (`pytest`, `vitest`, `cargo test`, `go test`,
-`dotnet test`, etc.) at every red-green-refactor transition. Claims like
-"tests would pass" or "tests should fail" are not acceptable — run them and
-report the actual output.
+Run the actual test command (`pytest`, `vitest`, `cargo test`, `go test`,
+`dotnet test`, etc.) via Bash at every RED, GREEN, and REFACTOR transition.
+That is 3 runs minimum per TEST-IMPL cycle. Claims like "tests would pass"
+or "tests should fail" are never acceptable — run them and report the
+actual output. If the test runner is not available, report the blocker
+immediately.
 
 #### Phase Transitions
 
-- When all TEST tasks in a test phase are done: test phase -> `[completed]`,
-  corresponding IMPL phase -> `[in-progress]`
-- When all IMPL tasks in an impl phase are done: impl phase -> `[completed]`,
-  next TEST phase -> `[in-progress]`
+Phases group by feature, not by test vs implementation. Each phase contains
+interleaved TEST-IMPL pairs. When all tasks in a phase are done, the phase
+is `[completed]` and the next phase becomes `[in-progress]`.
 
 #### Update Transaction (required order)
 
@@ -268,6 +325,8 @@ Status values: `active`, `paused`, `completed`, `archived`
 - Impl task codes: `[IMPL-PREFIX-NN]` — for tasks that write production code
   to satisfy tests. Each impl task includes `-> satisfies [TEST-XX-NN]`
   referencing the test task it makes pass.
+- Tasks alternate within each phase: TEST, IMPL, TEST, IMPL. Each TEST-IMPL
+  pair is one red-green-refactor cycle.
 - Prefix is a short (2-4 letter) uppercase abbreviation of the spec
   (e.g., `user-auth-system` -> `AUTH`). Numbers auto-increment continuously
   across all phases starting at `01`.
@@ -286,6 +345,13 @@ Specs include a **Testing Architecture** section specifying:
 - Isolation strategy: testcontainers for real databases/services, mocks only
   at system boundaries (HTTP clients, third-party APIs), no external network
   calls in tests
+- E2E testing approach:
+  - **Backend e2e**: full API request lifecycle (HTTP in → middleware → handler
+    → service → DB → response) using testcontainers for real databases and
+    mocked external APIs (MSW, WireMock). No browser needed.
+  - **Frontend e2e**: browser-based user flows (Playwright, Cypress) when
+    applicable
+  - All e2e tests run in isolation — no external network calls
 - Coverage targets (line and branch minimums)
 - Test directory structure and naming conventions
 - Special setup requirements (fixtures, factories, seed data)
@@ -299,8 +365,10 @@ A markdown table tracking the red-green-refactor cycle for every task:
 
 | Task | Red | Green | Refactor |
 |------|-----|-------|----------|
-| [TEST-AUTH-01] | 3 tests written, all fail (missing module) | — | — |
+| [TEST-AUTH-01] | 3 tests fail: `Cannot find module './jwt'` | — | — |
 | [IMPL-AUTH-02] | — | 3/3 pass after implementing JwtService | Extracted token config to constants |
+| [TEST-AUTH-03] | 2 tests fail: `Expected rotated token` | — | — |
+| [IMPL-AUTH-04] | — | 5/5 pass | Renamed `createToken` -> `issueAccessToken` |
 ```
 
 The TDD Log is an audit trail proving discipline was followed. It is filled
@@ -379,13 +447,15 @@ tags: [<tag1>, <tag2>]
 | Need | Library | Version | Alternatives | Rationale |
 |------|---------|---------|-------------|-----------|
 
-## Phase 1: Tests for <Feature A> [in-progress] (TEST)
+## Phase 1: <Feature A> [in-progress]
 - [ ] [TEST-XX-01] <test task with file path, assertions, isolation> <- current
-- [ ] [TEST-XX-02] <test task>
+- [ ] [IMPL-XX-02] <impl task> -> satisfies [TEST-XX-01]
+- [ ] [TEST-XX-03] <test task>
+- [ ] [IMPL-XX-04] <impl task> -> satisfies [TEST-XX-03]
 
-## Phase 2: Implement <Feature A> [pending] (IMPL)
-- [ ] [IMPL-XX-03] <impl task> -> satisfies [TEST-XX-01]
-- [ ] [IMPL-XX-04] <impl task> -> satisfies [TEST-XX-02]
+## Phase 2: <Feature B> [pending]
+- [ ] [TEST-XX-05] <test task>
+- [ ] [IMPL-XX-06] <impl task> -> satisfies [TEST-XX-05]
 
 ---
 
@@ -516,8 +586,10 @@ above. The spec should include:
 - **Testing Architecture** (mandatory) — framework, isolation strategy,
   coverage targets, test commands, anti-patterns
 - **Library Choices** — comparison table with rationale
-- **Test-interleaved phases**: TEST phase -> IMPL phase -> TEST -> IMPL
-- **Tasks** with `[TEST-PREFIX-NN]` and `[IMPL-PREFIX-NN]` codes
+- **Feature phases** with interleaved TEST-IMPL task pairs (red-green-refactor
+  per pair, not batched)
+- **Tasks** with `[TEST-PREFIX-NN]` and `[IMPL-PREFIX-NN]` codes alternating
+  within each phase
 - TDD Log (empty), Resume Context, Decision Log, Deviations table
 
 **Coherence review (mandatory before presenting):**
@@ -529,12 +601,12 @@ above. The spec should include:
 6. Library choices are consistent throughout
 7. Overview accurately summarizes what phases deliver
 8. No gaps — everything implementation needs is covered by a task
-9. Every IMPL phase has a preceding TEST phase
-10. Every `[IMPL-XX-NN]` task references at least one `[TEST-XX-NN]` task
-11. Every `[TEST-XX-NN]` task is referenced by at least one `[IMPL-XX-NN]`
+9. Tasks alternate TEST-IMPL within each phase (true red-green-refactor)
+10. Every `[IMPL-XX-NN]` task immediately follows its `[TEST-XX-NN]` task
+11. Every `[TEST-XX-NN]` task is followed by an `[IMPL-XX-NN]` that satisfies it
 
 Save to `.specs/<id>/SPEC.md`. Update `.specs/registry.md` — set status
-to `active`. Mark first TEST phase `[in-progress]`, first task `← current`.
+to `active`. Mark first phase `[in-progress]`, first task `← current`.
 
 **Present the spec and wait for approval.** Do not begin implementing until
 the user explicitly approves.

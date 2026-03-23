@@ -32,15 +32,17 @@ Parse the user's request to determine what to implement:
 5. Determine task type by task code prefix: `TEST-` for test tasks,
    `IMPL-` for implementation tasks
 6. Present a brief plan: "I'll implement N tasks across M phases. Starting
-   with [TASK-CODE] — <task description>. TDD phase: RED/GREEN."
+   with [TASK-CODE] — <task description>. TDD cycle: RED."
 
-Task format in SPEC.md:
-- `- [ ] [TEST-XX-01] Write tests for X in tests/file.test.ts — assertions: Y, Z (mock: HTTP client, real: database)`
+Task format in SPEC.md (tasks alternate TEST-IMPL within each phase):
+- `- [ ] [TEST-XX-01] Write tests for X in tests/file.test.ts`
 - `- [ ] [IMPL-XX-02] Implement X in src/file.ts -> satisfies [TEST-XX-01]`
+- `- [ ] [TEST-XX-03] Write tests for Y in tests/file.test.ts`
+- `- [ ] [IMPL-XX-04] Implement Y in src/file.ts -> satisfies [TEST-XX-03]`
 
-For each task in scope, in order:
+For each TEST-IMPL pair in scope, in order:
 
-### For TEST Tasks (RED Phase)
+### RED — TEST Task
 
 1. Mark the task with `<- current` in the SPEC.md
 2. Read the task specification: file path, test descriptions, isolation strategy
@@ -50,90 +52,112 @@ For each task in scope, in order:
    - Write each test case described in the task
    - Import the production module/function (which does not exist yet or is empty)
    - Assert expected behavior
-5. **RUN the tests** via Bash (e.g., `npx vitest run <file>`, `pytest <file>`,
-   `go test ./...`, `mvn test -pl <module>`)
-6. **Confirm tests FAIL** — this is the RED phase. The tests must fail because
-   the production code does not exist yet.
-7. If tests PASS unexpectedly: **STOP**. Report the anomaly to the user.
-   Possible causes:
+5. **GATE: RUN the tests** via Bash (e.g., `npx vitest run <file>`,
+   `pytest <file>`, `go test ./...`). Do not proceed without running them.
+6. **GATE: Confirm tests FAIL.** If tests fail — good, this is RED.
+7. If tests PASS unexpectedly: **STOP.** Do not proceed. Report the anomaly
+   to the user. Possible causes:
    - The feature already exists (check the codebase)
    - The test doesn't actually test what it claims (assertions are wrong)
    - Imports resolve to existing code that satisfies the test
    - The test file has a syntax/import error that makes the runner skip it
-   Do not proceed until the user clarifies.
+   Wait for the user to decide how to proceed.
 8. Log the failure output in the TDD Log:
-   - Task column: task code
-   - Red column: test command, exit code, number of failures, key failure message
-9. Check off the task: `- [ ]` -> `- [x]`
-10. Remove `<- current` from the completed task
-11. Update spec progress (checkboxes, phase status, registry, Resume Context)
+   `| [TEST-XX-NN] | <command>: N tests, N failed — <key message> | — | — |`
+9. Check off the task: `- [ ]` -> `- [x]`, remove `<- current`
 
-### For IMPL Tasks (GREEN Phase)
+### GREEN — IMPL Task
 
 1. Mark the task with `<- current` in the SPEC.md
-2. Read which TEST tasks this satisfies (from `-> satisfies [TEST-XX-NN]`)
-3. Locate the test files for those TEST tasks — read them to understand
-   exactly what the tests expect
+2. Read which TEST task this satisfies (from `-> satisfies [TEST-XX-NN]`)
+3. **Read the test file.** Understand exactly what the tests expect — return
+   values, status codes, error messages, data shapes. The tests are the spec.
 4. Write the **MINIMUM** production code to make the referenced tests pass:
    - Do not add features beyond what the tests require
    - Do not add error handling the tests don't check for
    - Do not optimize prematurely
    - Write the simplest thing that could possibly work
-5. **RUN the tests** via Bash — run the specific test files referenced by
-   the satisfies notation
-6. **Confirm tests PASS** — this is the GREEN phase
+5. **GATE: RUN the tests** via Bash. Do not proceed without running them.
+6. **GATE: Confirm tests PASS.**
 7. If tests still fail:
    - Read the failure output carefully
-   - Fix the production code (not the tests, unless the test has a bug)
-   - Run again
-   - Repeat until all referenced tests pass
-   - Do not check off the task until all referenced tests are green
+   - **Fix the production code, NOT the tests.** Tests define expected
+     behavior. If a test expects X and your code does Y, your code is wrong.
+   - Run again. Repeat until all referenced tests are green.
+   - The only reason to touch a test is if it has an actual bug (wrong
+     import, syntax error, broken setup). If you believe the test expectation
+     itself is wrong, STOP and ask the user before changing it.
 8. Log the pass output in the TDD Log:
-   - Task column: task code
-   - Green column: test command, exit code, number passing, time elapsed
-9. **REFACTOR phase**: Review the implementation for code quality:
+   `| [IMPL-XX-NN] | — | <command>: N passed, 0 failed | — |`
+
+### REFACTOR — Still on IMPL Task
+
+1. Review the implementation for code quality:
    - Remove duplication
    - Improve naming
    - Extract helpers if warranted
    - Simplify complex logic
    - Ensure code follows existing codebase patterns
-10. **RUN tests again** after refactoring — they must still pass
-11. If refactoring broke tests: undo the refactoring change, try a different
-    approach, run tests again
-12. Log refactoring in the TDD Log:
-    - Refactor column: what changed (or "none" if no refactoring needed)
-13. Check off the task: `- [ ]` -> `- [x]`
-14. Remove `<- current` from the completed task
-15. Update spec progress (checkboxes, phase status, registry, Resume Context)
+2. **GATE: RUN tests again** after refactoring. Do not proceed without running.
+3. **GATE: Confirm tests STILL PASS.**
+4. If refactoring broke tests: undo the refactoring change, try a different
+   approach, run tests again. Do not modify tests to accommodate refactoring.
+5. Log refactoring in the TDD Log Refactor column (or "none")
+6. Check off the task: `- [ ]` -> `- [x]`, remove `<- current`
+7. Update spec progress (checkboxes, phase status, registry, Resume Context)
+
+**Then move to the next TEST-IMPL pair and repeat the cycle.**
+
+### Self-Check (run this before every task)
+
+Before starting any task, verify:
+- Am I about to write production code? → Is there a failing test for it?
+- Am I about to skip running tests? → Run them. Always. Via Bash.
+- Am I about to modify a test to make it pass? → Stop. Fix the code instead.
+- Did I log the last task in the TDD Log? → Do it now.
+- Did I update the checkbox and `<- current` marker? → Do it now.
+
+If any check fails, correct it before proceeding.
+
+### Tests Are Sacred
+
+Tests define expected behavior. They are the specification in code form.
+
+- **Never modify a test assertion to match what your code returns.** Make
+  your code return what the test expects.
+- If a test expects status 422 and your code returns 400, change your code
+  to return 422. Do not change the test to expect 400.
+- The only time you touch a test is for actual bugs: wrong import, syntax
+  error, broken fixture setup — not because the assertion "doesn't match."
+- If you genuinely believe a test expectation is wrong (contradicts
+  requirements, impossible to implement), **STOP and ask the user.** Do not
+  silently change test expectations.
 
 ### Blocking Rule
 
-**You MUST NOT write production code for any implementation task until the
-corresponding test task(s) are completed and their tests are confirmed
-failing.** If you find yourself about to write a function body before its
-test exists, STOP and write the test first.
+Each IMPL task cannot start until its TEST task is completed and tests are
+confirmed failing. This is per-task, not per-phase. If you find yourself
+about to write a function body before its test exists, STOP and write the
+test first.
 
-If the user asks to skip ahead to an IMPL task whose TEST tasks are not yet
-done, explain the TDD constraint and offer to write the tests first.
+If the user asks to skip ahead to an IMPL task whose TEST task is not done,
+explain the constraint and offer to write the test first.
 
 ### Test Execution Rule
 
-**You MUST run the actual test command** at every red-green-refactor
-transition. Do not say "tests would pass" or "this should work." Execute the
-tests and read the output. If the test runner is not configured or not
-available, report the blocker and ask the user how to run tests.
+Run the actual test command via Bash at every RED, GREEN, and REFACTOR
+transition. That is **3 runs minimum per TEST-IMPL cycle.** Never say "tests
+would pass" or "this should work." Execute the tests and report the actual
+output. If the test runner is not available, report the blocker immediately.
 
-Always run the specific test file(s) relevant to the current task, not the
-entire test suite (unless the user requests it or the task requires it).
+Run the specific test file(s) for the current task, not the entire suite
+(unless the user requests it or the task requires it).
 
 ### Phase Transition
 
-- When all TEST tasks in a test phase are done: phase -> `[completed]`,
-  advance the next IMPL phase to `[in-progress]`
-- When all IMPL tasks in an impl phase are done: phase -> `[completed]`,
-  advance the next TEST phase to `[in-progress]`
-- Test phases and impl phases are paired — completing a TEST phase unlocks
-  its IMPL phase, and completing an IMPL phase unlocks the next TEST phase
+Phases group by feature, not by test vs implementation. When all tasks
+(both TEST and IMPL) in a phase are done, the phase is `[completed]` and
+the next phase becomes `[in-progress]`.
 
 ### Update Progress (after every task)
 

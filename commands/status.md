@@ -25,34 +25,32 @@ Show detailed progress of the active spec with TDD state.
    - Tests passing: count of IMPL tasks with Green entries
    - Tests failing: count of TEST tasks with Red entries whose IMPL tasks
      are not yet checked off
-7. Show a detailed breakdown with phase type markers (TEST/IMPL), explicit
+7. Show a detailed breakdown with task type markers (TEST/IMPL), explicit
    task markers, and TDD state:
 
 ```
 User Auth System [active, high priority] — TDD
 Created: 2026-02-10 | Updated: 2026-02-11
 
-Phase 1: Auth Middleware Tests (TEST) [completed]
+Phase 1: Auth Foundation [completed]
   + [TEST-AUTH-01] Write auth middleware tests (RED)
-  + [TEST-AUTH-02] Write token refresh tests (RED)
+  + [IMPL-AUTH-02] Implement verifyToken (GREEN, refactored)
+  + [TEST-AUTH-03] Write token refresh tests (RED)
+  + [IMPL-AUTH-04] Implement refreshToken (GREEN)
 
-Phase 2: Auth Middleware Implementation (IMPL) [in-progress]
-  + [IMPL-AUTH-03] Implement verifyToken (GREEN)
-  -> [IMPL-AUTH-04] Implement refreshToken <- current
-  o [IMPL-AUTH-05] Add rate limiting middleware
+Phase 2: OAuth Integration [in-progress]
+  + [TEST-AUTH-05] Write Google OAuth tests (RED)
+  + [IMPL-AUTH-06] Implement Google OAuth (GREEN)
+  -> [TEST-AUTH-07] Write GitHub OAuth tests <- current
+  o [IMPL-AUTH-08] Implement GitHub OAuth
+  o [TEST-AUTH-09] Write token exchange tests
+  o [IMPL-AUTH-10] Implement token exchange
 
-Phase 3: OAuth Tests (TEST) [pending]
-  o [TEST-AUTH-06] Write Google OAuth tests
-  o [TEST-AUTH-07] Write GitHub OAuth tests
-
-Phase 4: OAuth Implementation (IMPL) [pending]
-  o [IMPL-AUTH-08] Implement Google OAuth provider
-  o [IMPL-AUTH-09] Implement GitHub OAuth provider
-
-Progress: 4/9 tasks (44%)
-Current: [IMPL-AUTH-04] Implement refreshToken
-Current TDD Phase: GREEN (making tests pass)
-Tests: 4 written, 3 passing, 1 failing
+Progress: 6/10 tasks (60%)
+Current: [TEST-AUTH-07] Write GitHub OAuth tests
+Last Cycle: [IMPL-AUTH-06] GREEN — 8/8 pass
+TDD Phase: RED (about to write test)
+Tests: 3 written, 3 passing
 ```
 
 Icons: `+` done, `->` in-progress/current, `o` pending.

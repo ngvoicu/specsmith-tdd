@@ -104,22 +104,30 @@ TDD guarantee.
 3. **TDD Log updated after every task.** After completing any TEST or IMPL
    task, add a row to the TDD Log with the red/green/refactor outputs.
 
-4. **TEST phases precede IMPL phases.** In the spec phase structure, every
-   feature's TEST phase comes before its IMPL phase. Phase ordering is:
-   `Tests for X`, then `Implement X`, then `Tests for Y`, then `Implement Y`.
+4. **Tasks alternate TEST-IMPL within each phase.** Phases group by feature.
+   Within each phase, tasks follow the pattern: `[TEST-XX-01]`, `[IMPL-XX-02]`,
+   `[TEST-XX-03]`, `[IMPL-XX-04]`. Each TEST-IMPL pair is one red-green-refactor
+   cycle. No separate TEST and IMPL phases.
 
 5. **Continuous task numbering with TEST-/IMPL- prefixes.** Task codes
-   increment across all phases: `[TEST-XX-01]`, `[TEST-XX-02]`,
-   `[TEST-XX-03]`, `[IMPL-XX-04]`, `[IMPL-XX-05]`, etc. No resets per phase.
+   increment across all phases: `[TEST-XX-01]`, `[IMPL-XX-02]`,
+   `[TEST-XX-03]`, `[IMPL-XX-04]`, etc. No resets per phase.
 
-6. **IMPL tasks reference their TEST tasks.** Every IMPL task line includes
-   `-> satisfies [TEST-XX-NN]` linking to the test(s) it makes pass.
+6. **IMPL tasks immediately follow their TEST tasks.** Every IMPL task line
+   includes `-> satisfies [TEST-XX-NN]` linking to the test it makes pass.
+   The IMPL task is always the next task after its TEST task.
 
 7. **Refactor only when green.** Refactoring (renaming, extracting, restructuring)
    happens only after all tests pass. Refactoring must not change test outcomes.
 
 8. **Test isolation.** Each test is independent. No test relies on another test's
    side effects. Tests can run in any order and produce the same results.
+
+8b. **Tests are sacred.** Tests define expected behavior. During the GREEN phase,
+    if tests fail, fix the production code — never modify test assertions to match
+    what the code returns. The only reason to touch a test is an actual bug (wrong
+    import, syntax error, broken fixture). If a test expectation seems wrong, STOP
+    and ask the user before changing it.
 
 ### Forge TDD Contracts
 
@@ -135,11 +143,12 @@ TDD guarantee.
     - Coverage expectations
     - Any existing testing patterns to follow
 
-11. **Test-interleaved phase structure.** Forge MUST produce phases in
-    TEST/IMPL pairs. A phase list like `Phase 1: Build X`, `Phase 2: Build Y`
-    is invalid. The correct structure is `Phase 1: Tests for X (TEST)`,
-    `Phase 2: Implement X (IMPL)`, `Phase 3: Tests for Y (TEST)`,
-    `Phase 4: Implement Y (IMPL)`.
+11. **Interleaved task structure.** Forge MUST produce phases with alternating
+    TEST-IMPL task pairs. A phase with all TEST tasks followed by all IMPL tasks
+    is invalid. The correct structure is: `[TEST-XX-01] Write test`, then
+    `[IMPL-XX-02] Implement -> satisfies [TEST-XX-01]`, then
+    `[TEST-XX-03] Write test`, then `[IMPL-XX-04] Implement -> satisfies [TEST-XX-03]`.
+    Phases group by feature area, not by test vs implementation.
 
 12. **Research includes test infrastructure.** The researcher agent MUST
     analyze the project's existing test infrastructure (framework, patterns,
@@ -147,24 +156,30 @@ TDD guarantee.
 
 ### Implement TDD Contracts
 
-13. **Red-green-refactor enforcement.** During implementation, the workflow for
-    each feature is:
-    - Execute TEST phase tasks: write tests, run them, confirm they fail (RED)
-    - Execute IMPL phase tasks: write code, run tests, confirm they pass (GREEN)
-    - Refactor: improve code while keeping tests green (REFACTOR)
+13. **Red-green-refactor enforcement per task pair.** During implementation,
+    each TEST-IMPL pair follows:
+    - TEST task: write test, run, confirm fail (RED)
+    - IMPL task: write minimum code, run, confirm pass (GREEN)
+    - REFACTOR: clean up, run, confirm still green
+    Then move to the next TEST-IMPL pair. This is true TDD — one cycle at a
+    time, not batched.
 
-14. **Blocking rule: TEST phase must complete before IMPL phase starts.** The
-    implement command MUST NOT begin an IMPL phase until its corresponding TEST
-    phase is `[completed]`. If a user requests "implement phase 4" and phase 3
-    (its TEST phase) is not complete, refuse and explain.
+14. **Blocking rule: per-task, not per-phase.** Each IMPL task MUST NOT start
+    until its corresponding TEST task is completed and tests are confirmed
+    failing. This is enforced at the task level. An IMPL task cannot run
+    before its TEST task, regardless of phase boundaries.
 
-15. **Test execution mandate.** The implement command MUST run the test suite
-    after every task completion. The exact command from the spec's Testing
-    Architecture section is used. Test output is captured and recorded.
+15. **Test execution mandate — 3 runs per cycle.** The implement command MUST
+    run tests via Bash at every RED, GREEN, and REFACTOR transition. That is 3
+    runs minimum per TEST-IMPL cycle. Claims like "tests would pass" are never
+    acceptable. The exact command from the spec's Testing Architecture is used.
 
-16. **Failed tests block progress.** If tests fail after an IMPL task (and the
-    failures are not expected RED-phase failures), implementation stops. The
-    failure must be resolved before moving to the next task.
+16. **Failed tests block progress — fix code, not tests.** If tests fail after
+    an IMPL task, fix the production code and run again. Never modify test
+    assertions to make them pass. Tests define expected behavior. The only
+    reason to touch a test is an actual bug (wrong import, syntax error,
+    broken setup). If a test expectation seems genuinely wrong, STOP and ask
+    the user.
 
 17. **TDD Log is mandatory.** The implement command MUST update the TDD Log
     table after each task. Missing TDD Log entries indicate the TDD process
@@ -188,7 +203,7 @@ TDD guarantee.
 
 20. **TDD indicators in status output.** The status command MUST show:
     - Current TDD phase (RED/GREEN/REFACTOR)
-    - TEST vs IMPL phase counts and completion
+    - TEST vs IMPL task counts and completion per phase
     - Number of TDD Log entries vs expected entries
     - Last test run results summary
 

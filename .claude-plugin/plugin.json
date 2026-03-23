@@ -1,7 +1,7 @@
 {
   "name": "specsmith-tdd",
   "version": "1.0.0",
-  "description": "TDD-first spec management for AI coding workflows. Every task starts with a failing test, no production code without red tests. Specs enforce test-per-phase structure, testcontainers for real services, and strict red-green-refactor cycles.",
+  "description": "TDD-first spec management for AI coding workflows. Every task starts with a failing test, no production code without red tests. Specs enforce true red-green-red-green cycles (TEST-IMPL task pairs within feature phases), testcontainers for real services, tests-are-sacred rule, and strict gate checkpoints.",
   "author": {
     "name": "Gabriel Voicu"
   },

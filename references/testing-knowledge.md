@@ -63,7 +63,48 @@ anti-patterns for any project stack.
 | Integration (DB) | Testcontainers or test DB | Medium (~100ms-1s) | High | Repository layer, migrations, queries |
 | Integration (HTTP) | MSW / WireMock / VCR | Medium (~10-100ms) | High | API clients, webhook handlers |
 | Contract | Pact / Schema validation | Medium (~10-100ms) | High | Service boundaries, API contracts |
-| E2E | Full stack running | Slow (~1-30s) | Highest | Critical user flows, smoke tests |
+| E2E (backend) | Testcontainers + mocked externals | Medium (~100ms-2s) | Highest | Full API request lifecycle: HTTP in → middleware → handler → service → DB → response out |
+| E2E (frontend) | Playwright / Cypress | Slow (~1-30s) | Highest | Browser-based user flows, critical paths |
+| E2E (full stack) | Testcontainers + browser runner | Slow (~2-30s) | Highest | Complete user journey: UI → API → DB → response → UI |
+
+## E2E Testing by Language
+
+E2E tests exercise the full request/response lifecycle in isolation — no external
+network calls. Use testcontainers for real databases and services, mocks for
+third-party APIs. Backend e2e tests don't need a browser.
+
+| Language | HTTP Testing | DB Isolation | External API Mocking | Browser E2E |
+|----------|-------------|-------------|---------------------|------------|
+| TypeScript/JS | Supertest, undici | Testcontainers (PostgreSqlContainer, RedisContainer) | MSW (setupServer) | Playwright, Cypress |
+| Python | httpx (AsyncClient), TestClient (FastAPI/Starlette) | Testcontainers (PostgresContainer) | responses, respx, VCR.py | Playwright |
+| Java | MockMvc, RestAssured, WebTestClient | Testcontainers (PostgreSQLContainer) | WireMock | Selenium, Playwright |
+| Kotlin | MockMvc, WebTestClient, Ktor testApplication | Testcontainers (PostgreSQLContainer) | WireMock, MockK | Playwright |
+| Go | net/http/httptest | Testcontainers (postgres module) | httptest (custom handler) | Rod, chromedp |
+| Rust | actix_web::test, axum::test | Testcontainers (images::postgres) | wiremock (MockServer) | — |
+| C# | WebApplicationFactory, HttpClient | Testcontainers (PostgreSqlBuilder) | WireMock.Net | Playwright |
+
+### Backend E2E Pattern
+
+The goal is to test the full request lifecycle without leaving the process:
+
+```
+HTTP request (Supertest/httpx/MockMvc/httptest)
+  → Middleware stack (auth, rate limiting, validation)
+    → Route handler / Controller
+      → Service / Use case layer
+        → Repository → Real DB (Testcontainers)
+        → HTTP client → Mocked external API (MSW/WireMock)
+      ← Response built
+    ← Middleware post-processing
+  ← HTTP response asserted
+```
+
+Key principles:
+- **Real database**: Testcontainers with the production DB engine, never in-memory substitutes
+- **Mocked externals**: Third-party APIs (OAuth providers, payment gateways, email services) mocked at the HTTP boundary
+- **No network calls**: Everything runs in-process or in local containers
+- **Full middleware stack**: Auth, validation, error handling all exercised
+- **Realistic data**: Use factories/fixtures, not minimal stubs
 
 ## Anti-Patterns
 

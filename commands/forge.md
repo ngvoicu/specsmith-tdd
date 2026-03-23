@@ -1,5 +1,5 @@
 ---
-description: Research deeply, interview the user, then forge a structured TDD-first spec with test phases preceding implementation phases. This is a persistent planning workflow.
+description: Research deeply, interview the user, then forge a structured TDD-first spec with alternating TEST-IMPL task pairs per feature phase. This is a persistent planning workflow.
 disable-model-invocation: true
 ---
 
@@ -12,8 +12,8 @@ with something far more thorough: deep research -> interview -> more research
 The forge workflow never produces application code. Its only outputs are
 `.specs/` files: research notes, interview notes, and the SPEC.md.
 
-Every spec produced by this workflow uses test-driven development: test phases
-come before their corresponding implementation phases.
+Every spec produced by this workflow uses test-driven development: tasks
+alternate TEST-IMPL within each feature phase (true red-green-refactor).
 
 The user's request: $ARGUMENTS
 
@@ -264,8 +264,8 @@ Present your deeper findings. Ask about:
   on it. Does that sequence make sense?"
 - Scope refinement — "This feels like it could be split into two specs.
   Want to keep it together or separate?"
-- Test phase ordering — "I'd put the test phase for <component> before its
-  implementation. Here's the test-implementation pairing I have in mind..."
+- Task pairing — "Here's how I'd pair TEST-IMPL tasks within each
+  feature phase — each pair is one red-green-refactor cycle..."
 
 Save each round to `interview-02.md`, `interview-03.md`, etc.
 
@@ -274,7 +274,7 @@ Save each round to `interview-02.md`, `interview-03.md`, etc.
 - You have enough clarity to write a spec with no ambiguous tasks
 - The user says they're satisfied with the direction
 - Every task in the spec can be described concretely (not "figure out X")
-- The test-implementation pairing is clear for every feature
+- The TEST-IMPL task pairing is clear for every feature
 
 It's fine if this takes 2 rounds or 5 rounds. Don't rush it.
 
@@ -305,27 +305,27 @@ spec should include:
    - Mocking approach and libraries
    - Coverage targets and tools
    - CI integration notes
-6. **Phases**: Major milestones structured as TEST-IMPL pairs. Each feature
-   area gets a TEST phase followed by its IMPL phase:
-   - `Phase 1: <Feature Area> Tests [pending]` — write failing tests
-   - `Phase 2: <Feature Area> Implementation [pending]` — make tests pass
-   - `Phase 3: <Next Feature> Tests [pending]` — write failing tests
-   - `Phase 4: <Next Feature> Implementation [pending]` — make tests pass
-   - ...and so on. Every IMPL phase has a preceding TEST phase.
-7. **Tasks**: Two types of tasks, each with a task code `[PREFIX-NN]`:
+6. **Phases**: Major milestones grouped by feature area. Each phase contains
+   interleaved TEST-IMPL task pairs — each pair is one red-green-refactor
+   cycle. No separate TEST and IMPL phases.
+   - `Phase 1: <Feature Area> [pending]` — alternating TEST/IMPL tasks
+   - `Phase 2: <Next Feature> [pending]` — alternating TEST/IMPL tasks
+   - ...and so on.
+7. **Tasks**: Two types of tasks alternating within each phase:
 
-   **TEST tasks** (in TEST phases):
+   **TEST tasks** (RED — write first):
    - File path where the test will be written
    - Test descriptions (what each test asserts)
    - Isolation strategy for this test (containers, mocks, in-memory)
-   - Example: `- [ ] [AUTH-01] Write auth middleware tests in tests/auth/middleware.test.ts — test valid JWT, expired JWT, missing token, malformed token (mock: HTTP client, real: nothing)`
+   - Example: `- [ ] [TEST-AUTH-01] Write auth middleware tests in tests/auth/middleware.test.ts — test valid JWT, expired JWT, missing token`
 
-   **IMPL tasks** (in IMPL phases):
+   **IMPL tasks** (GREEN — immediately after their TEST task):
    - What production code to write
-   - Which test task(s) it satisfies, using arrow notation
-   - Example: `- [ ] [AUTH-02] Implement verifyToken() in src/auth/tokens.ts -> satisfies [AUTH-01]`
+   - Which test task it satisfies, using arrow notation
+   - Example: `- [ ] [IMPL-AUTH-02] Implement verifyToken() in src/auth/tokens.ts -> satisfies [TEST-AUTH-01]`
 
-   Task numbering is continuous across phases (AUTH-01, AUTH-02, AUTH-03...).
+   Tasks alternate: TEST, IMPL, TEST, IMPL. Numbering is continuous across
+   all phases (TEST-AUTH-01, IMPL-AUTH-02, TEST-AUTH-03, IMPL-AUTH-04...).
 
 8. **Testing Strategy**: Comprehensive testing plan covering unit tests,
    integration tests, e2e tests, and edge case tests. Specify frameworks,
@@ -340,7 +340,7 @@ spec should include:
    ```
 10. **Resume Context**: Write the initial context as if briefing someone who
     will start implementing tomorrow. Mention the TDD workflow: start with
-    the first TEST phase, write failing tests, then move to the IMPL phase.
+    the first TEST task, write a failing test, then move to its IMPL task.
 11. **Decision Log**: Every decision from the interviews, with rationale.
 
 **Coherence and logic review (mandatory before presenting):**
@@ -350,12 +350,11 @@ Before presenting the spec to the user, review it for coherence and logic:
 1. Read through the entire spec as a whole — does it tell a coherent story?
 2. Check that phases are in logical dependency order — no phase requires
    work from a later phase
-3. **Verify every implementation phase has a preceding test phase** — this
-   is the TDD invariant. No IMPL phase without its TEST phase first.
-4. **Verify every IMPL task references at least one TEST task** via the
-   `-> satisfies [TEST-XX-NN]` notation
-5. **Verify every TEST task is referenced by at least one IMPL task** — no
-   orphan tests that nothing implements
+3. **Verify tasks alternate TEST-IMPL within each phase** — this is the
+   true TDD cycle. No batching tests then implementations.
+4. **Verify every IMPL task immediately follows its TEST task** and
+   references it via `-> satisfies [TEST-XX-NN]`
+5. **Verify every TEST task has a following IMPL task** — no orphan tests
 6. Verify every task is concrete and actionable (file paths, function names)
 7. Confirm the architecture diagram matches the task descriptions
 8. Check that the testing strategy covers all feature tasks
@@ -369,9 +368,9 @@ Before presenting the spec to the user, review it for coherence and logic:
 - Every task should be concrete ("Add verifyToken() to src/auth/tokens.ts"),
   not vague ("implement token verification")
 - Phases should have clear boundaries and dependencies
-- TEST phases should be self-contained — all test files and assertions
+- TEST tasks should be self-contained — all test files and assertions
   specified, no ambiguity about what "failing" means
-- IMPL phases should be minimal — just enough code to make tests pass
+- IMPL tasks should be minimal — just enough code to make tests pass
 - The Decision Log should capture every non-obvious choice
 - The Overview should be understandable without reading the interviews
 - Architecture diagrams should be clear and accurate
@@ -386,7 +385,7 @@ Save to:
 Update `.specs/registry.md` (set status to `active`).
 
 **Present the spec to the user and wait for approval.** Walk through the
-phases (highlighting the TEST->IMPL pairing) and ask: "Does this look right?
+phases (highlighting the TEST-IMPL task alternation) and ask: "Does this look right?
 Want to adjust anything before we start?" Do not begin implementing until
 the user explicitly says to proceed. The spec review is a gate — the user
 may want to add tasks, reorder phases, change scope, or rename things.
