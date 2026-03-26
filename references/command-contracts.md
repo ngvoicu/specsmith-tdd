@@ -156,12 +156,16 @@ TDD guarantee.
     - Coverage expectations
     - Any existing testing patterns to follow
 
-11. **Interleaved task structure.** Forge MUST produce phases with alternating
-    TEST-IMPL task pairs. A phase with all TEST tasks followed by all IMPL tasks
-    is invalid. The correct structure is: `[TEST-XX-01] Write test`, then
-    `[IMPL-XX-02] Implement -> satisfies [TEST-XX-01]`, then
-    `[TEST-XX-03] Write test`, then `[IMPL-XX-04] Implement -> satisfies [TEST-XX-03]`.
-    Phases group by feature area, not by test vs implementation.
+11. **Interleaved task structure (most commonly violated contract).** Forge
+    MUST produce phases with alternating TEST-IMPL task pairs. A phase
+    containing only TEST tasks or only IMPL tasks is INVALID. A phase named
+    "Tests for X" or "Implement X" or with a `(TEST)`/`(IMPL)` suffix is
+    INVALID. The correct structure is feature-named phases with interleaved
+    tasks: `[TEST-XX-01] Write test`, then `[IMPL-XX-02] Implement ->
+    satisfies [TEST-XX-01]`, then `[TEST-XX-03] Write test`, then
+    `[IMPL-XX-04] Implement -> satisfies [TEST-XX-03]`. The coherence
+    review MUST verify this before presenting the spec. If any phase fails
+    this check, restructure it before presenting to the user.
 
 12. **Research includes test infrastructure.** The researcher agent MUST
     analyze the project's existing test infrastructure (framework, patterns,

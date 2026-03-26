@@ -245,6 +245,24 @@ cycle:
 This is true TDD: write one test (RED), make it pass (GREEN), refactor,
 then write the next test. Not batched.
 
+**ANTI-PATTERN — separate TEST and IMPL phases:**
+
+The following structure is WRONG and must never be produced:
+
+```markdown
+## Phase 1: Tests for Auth (TEST)        <-- WRONG
+- [ ] [TEST-AUTH-01] Write tests for JWT
+- [ ] [TEST-AUTH-02] Write tests for refresh
+## Phase 2: Implement Auth (IMPL)        <-- WRONG
+- [ ] [IMPL-AUTH-03] Implement JWT
+- [ ] [IMPL-AUTH-04] Implement refresh
+```
+
+This violates TDD because all tests are written before any implementation.
+If you see this pattern, merge the phases: one "Auth Foundation" phase
+with TEST-01, IMPL-02, TEST-03, IMPL-04 alternating inside. Phase names
+must be feature names with no `(TEST)` or `(IMPL)` suffixes.
+
 ### Task Format (TDD)
 
 Tasks use markdown checkboxes with a typed task code prefix:

@@ -502,6 +502,12 @@ tags: [<tag1>, <tag2>]
 - [ ] [TEST-XX-05] <test task>
 - [ ] [IMPL-XX-06] <impl task> -> satisfies [TEST-XX-05]
 
+CRITICAL: Phases group by FEATURE, not by test-vs-impl. Every phase
+has interleaved TEST-IMPL pairs. A phase containing only TEST tasks
+or only IMPL tasks is WRONG. A phase named "Tests for X (TEST)" or
+"Implement X (IMPL)" is WRONG. Correct: "Phase 1: Auth Foundation"
+with TEST-01, IMPL-02, TEST-03, IMPL-04 alternating inside it.
+
 ---
 
 ## Resume Context
@@ -637,7 +643,10 @@ above. The spec should include:
   coverage targets, test commands, anti-patterns
 - **Library Choices** — comparison table with rationale
 - **Feature phases** with interleaved TEST-IMPL task pairs (red-green-refactor
-  per pair, not batched)
+  per pair, not batched). Phases are named by feature ("Auth Foundation"),
+  NEVER by test-vs-impl ("Tests for Auth" / "Implement Auth"). No `(TEST)`
+  or `(IMPL)` suffixes on phase names. Every phase contains both TEST and
+  IMPL tasks alternating.
 - **Tasks** with `[TEST-PREFIX-NN]` and `[IMPL-PREFIX-NN]` codes alternating
   within each phase
 - TDD Log (empty), Resume Context, Decision Log, Deviations table
@@ -653,7 +662,11 @@ above. The spec should include:
 8. No gaps — everything implementation needs is covered by a task
 9. Verify acceptance criteria are specific, testable, and cover the key
    behaviors the user expects
-10. Tasks alternate TEST-IMPL within each phase (true red-green-refactor)
+10. **CRITICAL: Phases group by feature, not by test-vs-impl.** A phase
+    with only TEST tasks or only IMPL tasks is WRONG. A phase named
+    "Tests for X" or "Implement X" or with `(TEST)`/`(IMPL)` suffix is
+    WRONG. Restructure: merge test-only and impl-only phases into a single
+    feature phase with alternating TEST-IMPL pairs inside.
 11. Every `[IMPL-XX-NN]` task immediately follows its `[TEST-XX-NN]` task
 12. Every `[TEST-XX-NN]` task is followed by an `[IMPL-XX-NN]` that satisfies it
 

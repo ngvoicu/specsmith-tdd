@@ -155,9 +155,10 @@ Run the specific test file(s) for the current task, not the entire suite
 
 ### Phase Transition
 
-Phases group by feature, not by test vs implementation. When all tasks
-(both TEST and IMPL) in a phase are done, the phase is `[completed]` and
-the next phase becomes `[in-progress]`.
+Phases group by feature, not by test vs implementation. Each phase contains
+interleaved TEST-IMPL pairs. When all tasks (both TEST and IMPL) in a phase
+are done, the phase is `[completed]` and the next phase becomes
+`[in-progress]`.
 
 ### Update Progress (sacred — never skip)
 

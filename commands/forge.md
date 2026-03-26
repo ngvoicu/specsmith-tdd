@@ -313,10 +313,33 @@ spec should include:
    - CI integration notes
 7. **Phases**: Major milestones grouped by feature area. Each phase contains
    interleaved TEST-IMPL task pairs — each pair is one red-green-refactor
-   cycle. No separate TEST and IMPL phases.
-   - `Phase 1: <Feature Area> [pending]` — alternating TEST/IMPL tasks
-   - `Phase 2: <Next Feature> [pending]` — alternating TEST/IMPL tasks
-   - ...and so on.
+   cycle. No separate TEST and IMPL phases. No `(TEST)` or `(IMPL)` suffixes
+   on phase names.
+
+   **WRONG — separate TEST and IMPL phases (most common forge violation):**
+   ```
+   ## Phase 1: Tests for Auth (TEST)        <-- WRONG: phase groups tests
+   - [ ] [TEST-AUTH-01] Write auth tests
+   - [ ] [TEST-AUTH-02] Write more tests
+   ## Phase 2: Implement Auth (IMPL)         <-- WRONG: phase groups impls
+   - [ ] [IMPL-AUTH-03] Implement auth
+   - [ ] [IMPL-AUTH-04] Implement more
+   ```
+
+   **RIGHT — interleaved TEST-IMPL pairs within feature phases:**
+   ```
+   ## Phase 1: Auth Foundation [pending]     <-- RIGHT: feature name, no suffix
+   - [ ] [TEST-AUTH-01] Write auth middleware tests
+   - [ ] [IMPL-AUTH-02] Implement auth middleware -> satisfies [TEST-AUTH-01]
+   - [ ] [TEST-AUTH-03] Write token refresh tests
+   - [ ] [IMPL-AUTH-04] Implement token refresh -> satisfies [TEST-AUTH-03]
+   ## Phase 2: OAuth Integration [pending]
+   - [ ] [TEST-AUTH-05] Write OAuth callback tests
+   - [ ] [IMPL-AUTH-06] Implement OAuth callback -> satisfies [TEST-AUTH-05]
+   ```
+
+   Use the RIGHT pattern. Always. If you catch yourself grouping all tests
+   in one phase and all implementations in another, stop and restructure.
 8. **Tasks**: Two types of tasks alternating within each phase:
 
    **TEST tasks** (RED — write first):
@@ -356,8 +379,12 @@ Before presenting the spec to the user, review it for coherence and logic:
 1. Read through the entire spec as a whole — does it tell a coherent story?
 2. Check that phases are in logical dependency order — no phase requires
    work from a later phase
-3. **Verify tasks alternate TEST-IMPL within each phase** — this is the
-   true TDD cycle. No batching tests then implementations.
+3. **CRITICAL: Verify phases group by FEATURE, not by test-vs-impl.** A
+   phase named "Tests for X" or "Implement X" or with a `(TEST)`/`(IMPL)`
+   suffix is WRONG. Phases must be named by feature area (e.g., "Auth
+   Foundation", "Heatmap Aggregation") with alternating TEST-IMPL tasks
+   inside. If any phase contains only TEST tasks or only IMPL tasks,
+   restructure it now before presenting.
 4. **Verify every IMPL task immediately follows its TEST task** and
    references it via `-> satisfies [TEST-XX-NN]`
 5. **Verify every TEST task has a following IMPL task** — no orphan tests

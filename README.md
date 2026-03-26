@@ -483,7 +483,7 @@ If you happen to be in plan mode when you run `/specsmith-tdd:forge`, Spec Smith
 ```
 specsmith-tdd/
 ├── .claude-plugin/
-│   ├── plugin.json                 # Plugin metadata (v1.1.0)
+│   ├── plugin.json                 # Plugin metadata (v1.2.0)
 │   └── marketplace.json            # Marketplace registration
 ├── commands/
 │   ├── forge.md                    # Research + test infra analysis → interview → TDD spec
