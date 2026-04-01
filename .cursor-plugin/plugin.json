@@ -1,0 +1,13 @@
+{
+  "name": "specmint-tdd",
+  "displayName": "Spec Mint TDD",
+  "description": "TDD-first spec management for AI coding workflows",
+  "version": "1.0.0",
+  "author": {
+    "name": "Gabriel Voicu"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "commands": "./commands/"
+}
