@@ -597,7 +597,6 @@ Full setup at [kluris.io](https://kluris.io).
 |--------|---------|
 | **[specmint-core](https://github.com/ngvoicu/specmint-core)** | Persistent spec management — forge, implement, resume, pause |
 | **[specmint-tdd](https://github.com/ngvoicu/specmint-tdd)** | TDD-first fork with red-green-refactor enforcement |
-| **[datasmith-pg](https://github.com/ngvoicu/datasmith-pg)** | PostgreSQL schema design expertise — patterns, migrations, performance |
 
 ## License
 
