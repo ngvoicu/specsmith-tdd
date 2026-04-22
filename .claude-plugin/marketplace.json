@@ -11,7 +11,7 @@
       "name": "specmint-tdd",
       "source": "./",
       "description": "TDD-first spec management for AI coding workflows. Every task starts with a failing test, no production code without red tests. Specs enforce true red-green-red-green cycles (TEST-IMPL task pairs within feature phases), testcontainers for real services, tests-are-sacred rule, and strict gate checkpoints.",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "author": {
         "name": "Gabriel Voicu"
       },
